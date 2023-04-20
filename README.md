@@ -12,8 +12,10 @@ To run RL algorithm, following processes are conducted:
 2. When hard macro cell placement is done, place soft macro cells.
 3. When soft macro cell placement is done, evaluated reward function as the weighted sum of wirelength and routing congestion.
 4. Update neural network.
-| ![gif_std_nn](./src/placement_gif_std_nn.gif) |
-| Training process. Soft macro cells are placed by neural network |
+
+![gif_std_nn](./src/placement_gif_std_nn.gif)
+
+Training process. Soft macro cells are placed by neural network
 
 
 ## File tree

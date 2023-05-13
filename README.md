@@ -22,6 +22,10 @@ Training process. Soft macro cells are placed by neural network
 
 ```
 📦main
+ ┣ 📂environment
+ ┃ ┣ 📜environment.py
+ ┣ 📂model
+ ┃ ┣ 📜agent.py
  ┣ 📂netlist
  ┃ ┣ 📜adjacency_matrix
  ┃ ┣ 📜cells
@@ -32,24 +36,32 @@ Training process. Soft macro cells are placed by neural network
  ┃ ┣ 📜ispd18_test3.lef
  ┃ ┣ 📜macro_indices
  ┃ ┗ 📜std_indices
- ┣ 📜parsing.ipynb
- ┣ 📜placement_ispd18test3.ipynb
- ┣ 📜placement_ispd18test3.pt
+ ┣ 📂oldversions
+ ┃ ┣ 📜placement_ispd18test3.ipynb
+ ┃ ┗ 📜placement_ispd18test3.pt
+ ┣ 📂src
+ ┃ ┗ 📜placement_gif_std_nn.gif
+ ┣ 📂utils
+ ┃ ┣ 📜parsing.ipynb
+ ┃ ┣ 📜parsing.py
+ ┣ 📜placement.ipynb
+ ┣ 📜README.md
 ```
 
 ## Dependencies
 
 | Module | Version |
 | --- | --- |
-| python | 3.9.12 |
-| torch | 1.12.1 |
-| numpy | 1.23.4 |
-| matplotlib | 3.6.1 |
+| python | 3.9.16 |
+| stable-baselines3 | 2.0.0a5 |
+| sb3-contrib | 2.0.0a4 |
+| torch | 2.0.1 |
+| numpy | 1.24.0 |
+| matplotlib | 3.7.1 |
 
 ## Run
 
-1. Run parsing.ipynb
-2. Run placement_ispd18test3.ipynb
+1. Run placement.ipynb
 
 ## References
 

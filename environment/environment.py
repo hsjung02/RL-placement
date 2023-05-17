@@ -13,12 +13,13 @@ class CircuitEnv(Env):
                  cells: Dict,
                  macro_indices: List,
                  std_indices: List,
+                 pin_indices: Optional[List],
                  canvas_size: int = 32,
                  reward_weights: List =[1,0,0]) -> None:
         super().__init__()
 
         # Properties of netlist and canvas
-        self.init_properties(adjacency_matrix, cells, macro_indices, std_indices, canvas_size, reward_weights)
+        self.init_properties(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, canvas_size, reward_weights)
         # Properties about placement
         self.init_placement()
         # Properties about current canvas state
@@ -93,7 +94,7 @@ class CircuitEnv(Env):
 
         # Static featues of every nodes
         # width, height, is hard macro, is soft macro, is port cluster
-        node_static = [[self.cells[macro]['width'], self.cells[macro]['height'], 1, 0, 0] for macro in self.macro_indices] + [[self.cells[std]['width'], self.cells[std]['height'], 0, 1, 0] for std in self.std_indices]
+        node_static = [[self.cells[macro]['width'], self.cells[macro]['height'], 1, 0, 0] for macro in self.macro_indices] + [[self.cells[std]['width'], self.cells[std]['height'], 0, 1, 0] for std in self.std_indices] + [[0, 0, 0, 1, 0] for pin in self.pin_indices]
         features["node_static"] = node_static
 
         # Express edges using adj_i and adj_j array
@@ -218,6 +219,7 @@ class CircuitEnv(Env):
         # Weighted sum of wirelength, congestion and density
         # density = 0
         cost = np.array([self.get_wirelength(), self.get_congestion(), self.get_density()], dtype=np.float32)
+        return - cost @ self.reward_weights
         return - cost @ self.reward_weights - self.edge_penalty() # edge penalty added to place in the center
 
     def get_wirelength(self) -> int:
@@ -250,6 +252,8 @@ class CircuitEnv(Env):
                 x2 = max(self.cell_position[cell1][1], self.cell_position[cell2][1])
                 y1 = min(self.cell_position[cell1][0], self.cell_position[cell2][0])
                 y2 = max(self.cell_position[cell1][0], self.cell_position[cell2][0])
+                if 31 in [x1, x2, y1, y2]:
+                    continue
                 if routing_type%2 == 0:
                     routing_grid[y1, x1:x2] += 1
                     if (routing_type+position_type)%2==0:
@@ -311,7 +315,8 @@ class CircuitEnv(Env):
                         adjacency_matrix: List,
                         cells: Dict,
                         macro_indices: List,
-                        std_indicesL List,
+                        std_indices: List,
+                        pin_indices: Optional[List],
                         canvas_size: int = 32,
                         reward_weights: List = [1,0,0]) -> None:
         
@@ -324,6 +329,8 @@ class CircuitEnv(Env):
         self.macro_indices = macro_indices
         # List of std cell indices
         self.std_indices = std_indices
+        # List of pins(=ports) indices
+        self.pin_indices = pin_indices
         # Canvas size set to 32
         self.canvas_size = canvas_size
         # Reward function weights
@@ -350,7 +357,8 @@ class CircuitEnv(Env):
         self.canvas = np.array([[-1 for i in range(self.canvas_size)] for j in range(self.canvas_size)])
         macro_position = {macro:[-1,-1] for macro in self.macro_indices}
         std_position = {std:[-1,-1] for std in self.std_indices}
+        pin_position = {pin:[self.cells[pin]['y'], self.cells[pin]['x']] for pin in self.pin_indices}
         # Position of cells
-        self.cell_position = macro_position | std_position
+        self.cell_position = macro_position | std_position | pin_position
         # Density grid for density constraint and preventing overlaps
         self.density_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])

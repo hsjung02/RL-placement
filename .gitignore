@@ -1,2 +1,6 @@
 /.vscode
 /실험결과.pptx
+__pycache__
+__pycache__/
+__pycache__/*
+*.pyc

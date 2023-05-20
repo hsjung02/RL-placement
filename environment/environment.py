@@ -226,8 +226,8 @@ class CircuitEnv(Env):
         pin_num = len(self.pin_indices)
 
         # Initial random placement
-        soft_macro_position_x = (canvas_x-2*self.grid_width)*np.random.rand(soft_macro_num)
-        soft_macro_position_y = (canvas_y-2*self.grid_height)*np.random.rand(soft_macro_num)
+        soft_macro_position_x = (canvas_x)*np.random.rand(soft_macro_num)
+        soft_macro_position_y = (canvas_y)*np.random.rand(soft_macro_num)
 
         # Hard macro position and pin positions are fixed
         hard_macro_position_x = np.array([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
@@ -292,8 +292,8 @@ class CircuitEnv(Env):
             force_repulsive_y = fy[cell_grid_y*self.canvas_size+cell_grid_y]
 
             # Calculate net force using attractive force(wirelength) and repulsive force
-            force_x = force_attractive_x - force_repulsive_x
-            force_y = force_attractive_y - force_repulsive_y
+            force_x = - force_attractive_x + force_repulsive_x
+            force_y = - force_attractive_y + force_repulsive_y
             # Get acceleration for std cells
             ax = force_x[hard_macro_num:hard_macro_num+soft_macro_num]/mass
             ay = force_y[hard_macro_num:hard_macro_num+soft_macro_num]/mass
@@ -301,8 +301,8 @@ class CircuitEnv(Env):
             cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num] += 0.5*ax*(dt**2)
             cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num] += 0.5*ay*(dt**2)
             # Avoid getting out of the canvas by clipping positions
-            cell_position_x = np.clip(cell_position_x, a_min=0, a_max=cell_grid_x-1)
-            cell_position_y = np.clip(cell_position_y, a_min=0, a_max=cell_grid_y-1)
+            cell_position_x = np.clip(cell_position_x, a_min=0, a_max=self.grid_width*self.canvas_size)
+            cell_position_y = np.clip(cell_position_y, a_min=0, a_max=self.grid_height*self.canvas_size)
         
         # Save eplace result
         self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]

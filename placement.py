@@ -1,13 +1,13 @@
 # %%
 
 adjacency_matrix = [[0,1,1,0],[1,0,0,1],[1,0,0,0],[0,1,0,0]]
-test_cells = {0:{'width':8,'height':8}, 1:{'width':6,'height':6},2:{'width':4,'height':4},3:{'width':2,'height':2}}
+cells = {0:{'width':8,'height':8}, 1:{'width':6,'height':6},2:{'width':4,'height':4},3:{'width':2,'height':2}}
 macro_indices = [0,1,2,3]
 std_indices = []
 pin_indices = []
 
 from environment.environment import CircuitEnv
-env = CircuitEnv(adjacency_matrix, test_cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0,10])
+env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0,10])
 
 # from stable_baselines3.common.env_checker import check_env
 # check_env(env)
@@ -29,3 +29,8 @@ while not done:
     obs, reward, done, truncated, info = env.step(action)
 
 env.render()
+
+# %%
+env.place_std()
+env.render()
+# %%

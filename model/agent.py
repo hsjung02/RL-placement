@@ -41,7 +41,7 @@ class CircuitExtractor(BaseFeaturesExtractor):
     def __init__(self,
                  observation_space: spaces.Box,
                  num_gcn_layer: int = 3,
-                 features_dim: int = 48, #embedding_dim*(1+1+node_num)
+                 features_dim: int = 48232, #embedding_dim*(1+1+node_num)
                  embedding_dim: int = 8) -> None:
         super().__init__(observation_space, features_dim)
 
@@ -79,7 +79,7 @@ class CircuitExtractor(BaseFeaturesExtractor):
         h_atten, _ = self.atten_layer(h_nodes, h_current_node, h_current_node)
         features.append(h_atten)
 
-        return th.cat(features, dim=1).reshape(-1,48)
+        return th.cat(features, dim=1).reshape(-1,48232)
 
 
 class CircuitNetwork(nn.Module):

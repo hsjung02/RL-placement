@@ -33,7 +33,7 @@ class CircuitEnv(Env):
         self.action_space = spaces.Discrete(canvas_size**2)
         self.observation_space = spaces.Dict({
             "metadata":spaces.Box(low=0, high=1, shape=(10,), dtype=np.float64),
-            "nodes":spaces.Box(low=-1, high=100, shape=(4,8), dtype=np.float64),
+            "nodes":spaces.Box(low=-1, high=100, shape=(len(self.cells),8), dtype=np.float64),
             "adj_i":spaces.Box(low=0, high=4, shape=(edge_num,), dtype=np.int32),
             "adj_j":spaces.Box(low=0, high=4, shape=(edge_num,), dtype=np.int32),
             "current_node":spaces.Box(low=0, high=100, shape=(1,), dtype=np.int32)
@@ -211,9 +211,104 @@ class CircuitEnv(Env):
 
         return mask.reshape(1,-1)
         
-    def place_std(self):
+    def place_std(self) -> None:
         # TODO: Implement ePlAce algorithm
-        pass
+        self.eplace()
+
+    def eplace(self) -> None:
+
+        canvas_x = 2716400/2000
+        canvas_y = 2650880/2000
+
+
+        hard_macro_num = len(self.macro_indices)
+        soft_macro_num = len(self.std_indices)
+        pin_num = len(self.pin_indices)
+
+        # Initial random placement
+        soft_macro_position_x = (canvas_x-2*self.grid_width)*np.random.rand(soft_macro_num)
+        soft_macro_position_y = (canvas_y-2*self.grid_height)*np.random.rand(soft_macro_num)
+
+        # Hard macro position and pin positions are fixed
+        hard_macro_position_x = np.array([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
+        hard_macro_position_y = np.array([self.cell_position[c][0]*self.grid_height for c in self.macro_indices])
+        pin_position_x = np.array([self.cells[c]['x']*self.grid_width for c in self.pin_indices])
+        pin_position_y = np.array([self.cells[c]['y']*self.grid_height for c in self.pin_indices])
+
+        # Concatenate hard macro, soft macro, pin positions
+        cell_position_x = np.hstack([hard_macro_position_x, soft_macro_position_x, pin_position_x])
+        cell_position_y = np.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
+
+
+        cell_charge = np.zeros(hard_macro_num+soft_macro_num+pin_num)
+        for i in range(hard_macro_num):
+            cell_charge[i] = self.cells[i]['width']*self.cells[i]['height']
+        cell_charge[hard_macro_num:] = self.cells[hard_macro_num+1]['width']*self.cells[hard_macro_num+1]['height']
+
+        max_iteration = 1
+        dt = 1
+        mass = 1
+
+        # Initial state
+        self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
+        self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
+        self.show_canvas()
+
+        for _ in range(max_iteration):
+
+            # Evaluate force_attractive_x, force_attractive_y
+            force_attractive_x = np.sum(np.abs(self.adjacency_matrix*cell_position_x - cell_position_x.reshape(hard_macro_num+soft_macro_num+pin_num,1)), axis=1, where=self.adjacency_matrix!=0)
+            force_attractive_y = np.sum(np.abs(self.adjacency_matrix*cell_position_y - cell_position_y.reshape(hard_macro_num+soft_macro_num+pin_num,1)), axis=1, where=self.adjacency_matrix!=0)
+            
+            # Evaluate force_repulsive_x, force_repulsive_y
+            cell_grid_x = (cell_position_x/self.grid_width).astype(int) - 1
+            cell_grid_y = (cell_position_y/self.grid_height).astype(int) - 1
+            cell_grid = np.vstack([cell_grid_y, cell_grid_x])
+            # Charge for each grid
+            grid_charge = np.zeros((self.canvas_size, self.canvas_size))
+            np.add.at(grid_charge, tuple(cell_grid), cell_charge)
+
+            # Generate dx, dy, r_sq array for iteration
+            x, y = np.meshgrid(range(self.canvas_size), range(self.canvas_size))
+
+            x = x.flatten()
+            y = y.flatten()
+            q = grid_charge.flatten()
+            x = x.reshape(-1, 1)
+            y = y.reshape(-1, 1)
+            q = q.reshape(-1, 1)
+
+            dx = x - x.T
+            dy = y - y.T
+            r_sq = dx**2 + dy**2
+            np.fill_diagonal(r_sq, 1e8)
+            denom = np.sqrt(r_sq)**3
+
+            # Apply Coulomb's law
+            fx = np.sum(q*dx/denom, axis=1)
+            fy = np.sum(q*dy/denom, axis=1)
+
+            force_repulsive_x = fx[cell_grid_y*self.canvas_size+cell_grid_x]
+            force_repulsive_y = fy[cell_grid_y*self.canvas_size+cell_grid_y]
+
+            # Calculate net force using attractive force(wirelength) and repulsive force
+            force_x = force_attractive_x - force_repulsive_x
+            force_y = force_attractive_y - force_repulsive_y
+            # Get acceleration for std cells
+            ax = force_x[hard_macro_num:hard_macro_num+soft_macro_num]/mass
+            ay = force_y[hard_macro_num:hard_macro_num+soft_macro_num]/mass
+            # Move cells using acceleration
+            cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num] += 0.5*ax*(dt**2)
+            cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num] += 0.5*ay*(dt**2)
+            # Avoid getting out of the canvas by clipping positions
+            cell_position_x = np.clip(cell_position_x, a_min=0, a_max=cell_grid_x-1)
+            cell_position_y = np.clip(cell_position_y, a_min=0, a_max=cell_grid_y-1)
+        
+        # Save eplace result
+        self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
+        self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
+        for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
+            self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
 
     def get_reward(self) -> int:
         # Weighted sum of wirelength, congestion and density
@@ -231,12 +326,12 @@ class CircuitEnv(Env):
             for j in range(i,len(self.adjacency_matrix[0])):
                 if self.cell_position[j][0] == -1 and self.cell_position[j][1] == -1:
                     continue
-                if self.adjacency_matrix[i][j] >0 and i != j:
+                if self.adjacency_matrix[i,j] >0 and i != j:
                     wirelength += abs(self.cell_position[i][0]-self.cell_position[j][0])+abs(self.cell_position[i][1]-self.cell_position[j][1])+2
         return wirelength
 
     def get_congestion(self) -> int:
-
+        return 0
         # Route following right-angle algorithm
         routing_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
 
@@ -275,24 +370,17 @@ class CircuitEnv(Env):
     def get_density(self) -> int:
         # arbitrary set to 0
         return 0
-    
-    def edge_penalty(self) -> int:
-        # To put cells near center
-        pen = 0
-        for cell in self.cells:
-            pen += abs(self.cell_position[cell][0]-self.canvas_size//2) + abs(self.cell_position[cell][1]-self.canvas_size//2)
-
-        return pen
 
     def show_canvas(self) -> None:
         # Render function
         image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
-        for i in range(self.cell_num):
-            for j in range(i+1, self.cell_num):
-                if self.adjacency_matrix[i][j] != 0:
-                    y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
-                    x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
-                    plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
+        # for i in range(self.cell_num):
+        #     for j in range(i+1, self.cell_num):
+        #         if self.adjacency_matrix[i,j] != 0:
+        #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
+        #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
+        #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
+        plt.scatter(8*self.std_position_x/self.grid_width, 8*self.std_position_y/self.grid_height, s=0.1)
         # if mode=="show":
         #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
         #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
@@ -321,7 +409,7 @@ class CircuitEnv(Env):
                         reward_weights: List = [1,0,0]) -> None:
         
         # Adjacency matrix with all weights 1
-        self.adjacency_matrix = adjacency_matrix
+        self.adjacency_matrix = np.array(adjacency_matrix)
         # Width and height information of all cells
         # {0:{'width':8,'height':8}, 1:{'width':8,'height':8}}
         self.cells = cells
@@ -362,3 +450,7 @@ class CircuitEnv(Env):
         self.cell_position = macro_position | std_position | pin_position
         # Density grid for density constraint and preventing overlaps
         self.density_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
+        self.std_position_x = np.array([])
+        self.std_position_y = np.array([])
+        self.grid_width = 2716400/2000/self.canvas_size
+        self.grid_height = 2650880/2000/self.canvas_size

@@ -9,7 +9,7 @@ p = [4,15,26,100,111,122,196,207,218,292,303,314,388,399,410,484]
 n = 16
 for i in range(n):
     env.place_macro(p[i])
-env.render()
+#env.render()
 # %%
 env.place_std()
 # %%

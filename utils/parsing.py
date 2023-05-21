@@ -231,7 +231,7 @@ def make_HGraphFile(filename, net_list, stds):
         
     f.close()
 
-def make_softmacros(partition_num, stds, hard_macros):
+def make_softmacros(net_list, partition_num, stds, hard_macros):
   
     #빠른 서치를 위해 hmetis_indices 만들기==============================
     hmetis_indices_std_name = [i for i in range(len(stds)+1)]
@@ -288,12 +288,23 @@ def make_softmacros(partition_num, stds, hard_macros):
     #만들어진 소프트 매크로들의 정보를 넷리스트에도 추가하기===============================
     for soft_macro_name in soft_macros:
         for net_name in soft_macros[soft_macro_name]['connected_nets']:
-            net_list[net_name]['connected_soft_macros'].append(soft_macro_name)
-        
+            
+            if(soft_macro_name in net_list[net_name]['connected_soft_macros']):
+                continue
+            else:
+                net_list[net_name]['connected_soft_macros'].append(soft_macro_name)
+                
+            if(soft_macros[soft_macro_name]['adjacency_index'] in net_list[net_name]['connected_adjacency_indices']):
+                continue
+            else:
+                net_list[net_name]['connected_adjacency_indices'].append(soft_macros[soft_macro_name]['adjacency_index'])
+            
+        '''  
         if(soft_macros[soft_macro_name]['adjacency_index'] in net_list[net_name]['connected_adjacency_indices']):
             continue
         else:
             net_list[net_name]['connected_adjacency_indices'].append(soft_macros[soft_macro_name]['adjacency_index'])
+        '''  
     #==================================================================================
 
 
@@ -307,6 +318,9 @@ def make_adjacency_matrix(net_list, total_data_num):
     adjacency_matrix = [[0 for i in range(total_data_num)] for j in range(total_data_num)]
   
     print("making adjacency matrix start!")
+    
+    count=0
+    
     for net_name in net_list:
         for index_x in net_list[net_name]['connected_adjacency_indices']:
             for index_y in net_list[net_name]['connected_adjacency_indices']:
@@ -348,14 +362,18 @@ if __name__ == "__main__":
 
 
     #after clustering=========
-    soft_macros = make_softmacros(partition_number, stds, hard_macros)
+    soft_macros = make_softmacros(net_list, partition_number, stds, hard_macros)
     total_data_num = len(hard_macros)+len(soft_macros)+len(pins)
     adjacency_matrix = make_adjacency_matrix(net_list, total_data_num)
 
     hm = {hard_macros[c]['adjacency_index']:{'width':hard_macros[c]['width'], 'height':hard_macros[c]['height']} for c in hard_macros}
     sm = {soft_macros[c]['adjacency_index']:{'width':soft_macro_size, 'height':soft_macro_size} for c in soft_macros}
     p = {pins[c]['adjacency_index']:{'x':pins[c]['x'], 'y':pins[c]['y']} for c in pins}
-    cells = hm | sm | p
+    cells = {}
+    cells.update(hm)
+    cells.update(sm)
+    cells.update(p)
+    #cells = hm | sm | p
 
     macro_indices = [hard_macros[c]['adjacency_index'] for c in hard_macros]
     std_indices = [soft_macros[c]['adjacency_index'] for c in soft_macros]

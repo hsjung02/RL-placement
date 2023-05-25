@@ -24,14 +24,29 @@ class NodeEdge(nn.Module):
         h_nodes_1 = th.gather(h_nodes, 1, adj_i.unsqueeze(-1).expand(-1,-1,h_nodes.size(-1)).to(th.int64))
         h_nodes_2 = th.gather(h_nodes, 1, adj_j.unsqueeze(-1).expand(-1,-1,h_nodes.size(-1)).to(th.int64))
 
-        new_h_nodes = th.zeros_like(h_nodes)
-        for node in range(num_nodes):
-            adj = th.zeros(num_nodes, 1)
-            adj[adj_i[th.where(adj_j==node)].to(th.int64)] = 1
-            adj[adj_j[th.where(adj_i==node)].to(th.int64)] = 1
-            adj[node] = 1
-            th.mean(h_nodes*adj, dim=1)
-            new_h_nodes[:,node] = th.mean(h_nodes*adj, dim=1)
+        # new_h_nodes = th.zeros_like(h_nodes)
+        # for node in range(num_nodes):
+        #     adj = th.zeros(num_nodes, 1)
+        #     adj[adj_i[th.where(adj_j==node)].to(th.int64)] = 1
+        #     adj[adj_j[th.where(adj_i==node)].to(th.int64)] = 1
+        #     adj[node] = 1
+        #     th.mean(h_nodes*adj, dim=1)
+        #     new_h_nodes[:,node] = th.mean(h_nodes*adj, dim=1)
+        adj_i = adj_i.long()
+        adj_j = adj_j.long()
+        adj = th.zeros(num_nodes, num_nodes)
+        adj[adj_i, adj_j] = 1
+        adj[adj_j, adj_i] = 1
+        adj += th.eye(adj.size(0))
+
+        # Add extra dimension for broadcasting
+        adj = adj[None, :, :]
+
+        # Normalize adjacency matrix for mean calculation
+        adj = adj / adj.sum(dim=-1, keepdim=True)
+
+        # Computing mean values
+        new_h_nodes = th.bmm(adj, h_nodes)
 
         return self.fc(h_nodes_1+h_nodes_2), new_h_nodes
 
@@ -78,6 +93,7 @@ class CircuitExtractor(BaseFeaturesExtractor):
         # Use self-attention layer to use all node information
         h_atten, _ = self.atten_layer(h_nodes, h_current_node, h_current_node)
         features.append(h_atten)
+        # features.append(h_atten[:,:16])
 
         return th.cat(features, dim=1).reshape(-1,48232)
 

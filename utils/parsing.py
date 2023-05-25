@@ -7,8 +7,10 @@ import pickle
 #global variables==============================================
 canvas_grid_x_num = 32
 canvas_grid_y_num = 32
-canvas_x = 2716400/2000
-canvas_y = 2650880/2000
+# canvas_x = 2716400/2000
+# canvas_y = 2650880/2000
+canvas_x = 2716400/1000
+canvas_y = 2650880/1000
 grid_width =canvas_x/(canvas_grid_x_num) #width unit
 grid_height=canvas_y/(canvas_grid_y_num) #height unit
 

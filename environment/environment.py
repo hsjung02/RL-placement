@@ -222,18 +222,19 @@ class CircuitEnv(Env):
         canvas_y = 2650880/2000
         
         #합이 1이 되도록 맞출것
-        weight_attractive=0.7
+        weight_attractive=0.2
         weight_repulsive=1-weight_attractive
         v0x = 0
         v0y = 0
         
-        max_iteration =50
+        max_iteration = 20
         dt = 0.5
         mass = 1
         
         #force_scale = 1e+4 #for random force
-        repulsive_force_scale = 1e+6
+        repulsive_force_scale = 1e+7
         position_scale = 1e-6
+        grid_force_scale = 1e+6
 
 
         hard_macro_num = len(self.macro_indices)
@@ -243,10 +244,10 @@ class CircuitEnv(Env):
         # Initial random placement 
         #soft_macro_position_x = np.array([self.cell_position[c][1]*self.grid_width for c in self.std_indices])
         #soft_macro_position_y = np.array([self.cell_position[c][0]*self.grid_height for c in self.std_indices])
-        #soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size-20)+500
-        #soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size-20)+500
-        soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size)
-        soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size)
+        soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size-10)+200
+        soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size-10)+200
+        #soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size)
+        #soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size)
         # Hard macro position and pin positions are fixed
         hard_macro_position_x = np.array([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
         hard_macro_position_y = np.array([self.cell_position[c][0]*self.grid_height for c in self.macro_indices])
@@ -258,7 +259,10 @@ class CircuitEnv(Env):
         cell_position_y = np.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
         for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
                 self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
-
+        
+        cell_grid_position_x = np.array(hard_macro_num + soft_macro_num + pin_num)
+        cell_grid_position_y = np.array(hard_macro_num + soft_macro_num + pin_num)
+        
         soft_macro_position_delta_x = np.zeros(soft_macro_num)
         soft_macro_position_delta_y = np.zeros(soft_macro_num)
 
@@ -268,13 +272,40 @@ class CircuitEnv(Env):
         cell_charge[hard_macro_num:] = self.cells[hard_macro_num+1]['width']*self.cells[hard_macro_num+1]['height']
 
         
-
+        ePlace_grid_force_x = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 x방향 힘
+        ePlace_grid_force_y = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 y방향 힘
+        
+        #calculate grid force==================================================
+        for c in range(1,30):
+            for r in range(1,30):
+                if(self.canvas[r][c]!=-1):
+                    if(self.canvas[r][c]>self.canvas[r][c+1]):
+                        ePlace_grid_force_x[r,c] = 1
+                    elif(self.canvas[r][c]>self.canvas[r][c-1]):
+                        ePlace_grid_force_x[r,c] = -1
+                    else:
+                        ePlace_grid_force_x[r,c] = 0.5
+                        
+                        
+                    if(self.canvas[r][c]>self.canvas[r+1][c]):
+                        ePlace_grid_force_y[r,c] = 1
+                    elif(self.canvas[r][c]>self.canvas[r-1][c]):
+                        ePlace_grid_force_y[r,c] = -1
+       
+        boundary_grid_force = 0.2
+        ePlace_grid_force_x[:,0]  +=  boundary_grid_force
+        ePlace_grid_force_x[:,31] += -boundary_grid_force
+        ePlace_grid_force_y[0,:]  +=  boundary_grid_force
+        ePlace_grid_force_y[31,:] += -boundary_grid_force
+        #======================================================================
+        
+        
         # Initial state
         self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
         self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
         self.show_canvas()
 
-        for iter in range(max_iteration):
+        for iter in range(1, max_iteration+1):
 
             '''
             # Evaluate force_attractive_x, force_attractive_y
@@ -324,7 +355,9 @@ class CircuitEnv(Env):
                 weight_attractive = weight_attractive/t
                 weight_repulsive = weight_repulsive * t
             '''    
-
+            if (iter>max_iteration-3):
+                weight_attractive = 0
+                weight_repulsive = 1
             
             #모든 셀의 위치 차이
             cell_position_x_diff = np.subtract.outer(cell_position_x, cell_position_x) #delta x 배열
@@ -347,7 +380,7 @@ class CircuitEnv(Env):
             elementwise_attractive_force_y = np.multiply(elementwise_attractive_force_y.to_numpy(), np.array(self.adjacency_matrix))
             force_attractive_y = np.sum(elementwise_attractive_force_y, axis=1) '''
             
-            hook_constant = 5e+4
+            hook_constant = 1e+4
             elementwise_attractive_force_x = np.multiply(hook_constant * cell_position_x_diff, self.adjacency_matrix)
             elementwise_attractive_force_y = np.multiply(hook_constant * cell_position_y_diff, self.adjacency_matrix)
             force_attractive_x = np.sum(elementwise_attractive_force_x, axis=1) 
@@ -355,14 +388,14 @@ class CircuitEnv(Env):
             #================================================================================================================
             
             #척력 계산=======================================================================================================
+            
             elementwise_repulsive_force_x = np.multiply(cell_position_x_diff, np.divide(1,np.power(cell_position_distance,2))) #거리 제곱에 반비례해서 힘 작용
             elementwise_repulsive_force_x = pd.DataFrame(elementwise_repulsive_force_x)
             elementwise_repulsive_force_x = elementwise_repulsive_force_x.fillna(0)
             elementwise_repulsive_force_x = elementwise_repulsive_force_x.to_numpy()
             force_repulsive_x = np.sum(elementwise_repulsive_force_x, axis=0) #척력은 column 원소들끼리 더한다
             force_repulsive_x = np.multiply(force_repulsive_x, cell_charge) 
-            force_repulsive_x = force_repulsive_x * repulsive_force_scale
-            
+
             
             elementwise_repulsive_force_y = np.multiply(cell_position_y_diff, np.divide(1,np.power(cell_position_distance,2))) #거리 제곱에 반비례해서 힘 작용
             elementwise_repulsive_force_y = pd.DataFrame(elementwise_repulsive_force_y)
@@ -371,9 +404,42 @@ class CircuitEnv(Env):
             force_repulsive_y = np.sum(elementwise_repulsive_force_y, axis=0) #척력은 column 원소들끼리 더한다
             force_repulsive_y = np.multiply(force_repulsive_y, cell_charge)
             
+            #force_repulsive_x = np.zeros(hard_macro_num+soft_macro_num+pin_num)                                                              
+            #force_repulsive_y = np.zeros(hard_macro_num+soft_macro_num+pin_num)                                                              
+            #================================================================================================================
+            
+            #그리드로 인해 받는 힘=============================================================================================
+            
+            #그리드 위치
+            cell_grid_position_x = cell_position_x / self.grid_width
+            cell_grid_position_x = np.asarray(cell_grid_position_x, dtype=int)
+            cell_grid_position_y = cell_position_y / self.grid_height
+            cell_grid_position_y = np.asarray(cell_grid_position_y, dtype=int)
+            
+            
+            #그리드
+            
+            for grid_y in range(0,32):
+                for grid_x in range(0,32):
+                    
+                    current_grid_force_x = ePlace_grid_force_x[grid_y,grid_x] * 200
+                    current_grid_force_y = ePlace_grid_force_y[grid_y,grid_x] * 200
+                    
+                    
+                    mask_x = np.isin(cell_grid_position_x, grid_x) #grid_x 값을 갖는 원소에 마스크
+                    mask_y = np.isin(cell_grid_position_y, grid_y) #grid_y 값을 갖는 원소에 마스크
+                    
+                    mask = mask_x & mask_y
+                    
+                    
+                    force_repulsive_x[mask] -= current_grid_force_x
+                    force_repulsive_y[mask] -= current_grid_force_y
+                
+            #================================================================================================================
+            
+            #repulsive_force scale 조정======================================================================================
+            force_repulsive_x = force_repulsive_x * repulsive_force_scale
             force_repulsive_y = force_repulsive_y * repulsive_force_scale
-                                            
-                                            
             #================================================================================================================
            
             # Calculate net force using attractive force(wirelength) and repulsive force
@@ -402,14 +468,20 @@ class CircuitEnv(Env):
             print("-----------------------")
             print("iter",iter)
             
-            self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
-            self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
-            for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
-                self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
+            if(iter%4==0):
+                self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
+                self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
+                for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
+                    self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
+                    
+                    
+                #iteration_wirelength = self.get_wirelength()
+                #print("HPWL : ", iteration_wirelength)
                 
-                
-            iteration_wirelength = self.get_wirelength()
-            print("HPWL : ", iteration_wirelength)
+                self.show_canvas()
+            
+            
+            
             #print("force_x: ", force_x)
             #print("force_y: ", force_y)
             print("-----------------------")
@@ -507,8 +579,8 @@ class CircuitEnv(Env):
         fig.axes.get_xaxis().set_visible(False)
         fig.axes.get_yaxis().set_visible(False)
         plt.show()
-        # if mode=="save":
-        #     plt.savefig(path)
+        #if mode=="save":
+        #plt.savefig(path)
         return
 
     def init_properties(self,

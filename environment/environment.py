@@ -468,6 +468,8 @@ class CircuitEnv(Env):
             print("-----------------------")
             print("iter",iter)
             
+            '''
+            #to show image==================
             if(iter%4==0):
                 self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
                 self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
@@ -479,8 +481,8 @@ class CircuitEnv(Env):
                 #print("HPWL : ", iteration_wirelength)
                 
                 self.show_canvas()
-            
-            
+            #===============================
+            '''
             
             #print("force_x: ", force_x)
             #print("force_y: ", force_y)

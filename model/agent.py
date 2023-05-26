@@ -40,13 +40,18 @@ class NodeEdge(nn.Module):
         adj += th.eye(adj.size(0))
 
         # Add extra dimension for broadcasting
-        adj = adj[None, :, :]
+        # adj = adj[None, :, :]
+
+        adj = adj.unsqueeze(0)  # shape: (1, node_num, node_num)
+
+        # Repeat B to match the batch size of A
+        adj = adj.repeat(h_nodes.size(0), 1, 1)  # shape: (batch_size, node_num, node_num)
 
         # Normalize adjacency matrix for mean calculation
         adj = adj / adj.sum(dim=-1, keepdim=True)
 
         # Computing mean values
-        new_h_nodes = th.bmm(adj, h_nodes)
+        new_h_nodes = th.matmul(adj, h_nodes)
 
         return self.fc(h_nodes_1+h_nodes_2), new_h_nodes
 

@@ -2,6 +2,7 @@ import numpy as np
 import torch as th
 from matplotlib import pyplot as plt
 import gymnasium as gym
+import pandas as pd
 from gymnasium import Env
 from gymnasium import spaces
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
@@ -220,6 +221,8 @@ class CircuitEnv(Env):
         canvas_y = 2650880/2000
 
         
+        
+        #parameters===================================================
         #합이 1이 되도록 맞출것
         weight_attractive=0.2
         weight_repulsive=1-weight_attractive
@@ -228,10 +231,13 @@ class CircuitEnv(Env):
         dt = 0.5
         mass = 1
         
+        #scale parameters
         #force_scale = 1e+4 #for random force
         repulsive_force_scale = 1e+7
         position_scale = 1e-6
-        grid_force_scale = 1e+6
+        ePlace_grid_force_scale = 200
+        hook_constant = 1e+4
+        #=============================================================
 
 
         hard_macro_num = len(self.macro_indices)
@@ -311,6 +317,7 @@ class CircuitEnv(Env):
 
         for iter in range(1, max_iteration+1):
 
+            #마지막 3회의 iteration에서는 overlap 방지를 위해 척력만 고려
             if (iter>max_iteration-3):
                 weight_attractive = 0
                 weight_repulsive = 1
@@ -322,7 +329,7 @@ class CircuitEnv(Env):
             cell_position_distance[cell_position_distance==0] = np.inf
 
             #인력 계산=======================================================================================================
-            hook_constant = 1e+4
+            
             elementwise_attractive_force_x = np.multiply(hook_constant * cell_position_x_diff, self.adjacency_matrix)
             elementwise_attractive_force_y = np.multiply(hook_constant * cell_position_y_diff, self.adjacency_matrix)
             force_attractive_x = np.sum(elementwise_attractive_force_x, axis=1)
@@ -352,8 +359,8 @@ class CircuitEnv(Env):
             cell_grid_position_y = cell_position_y / self.grid_height
             cell_grid_position_y = np.asarray(cell_grid_position_y, dtype=int)
             #그리드
-            current_grid_force_x = ePlace_grid_force_x * 200
-            current_grid_force_y = ePlace_grid_force_y * 200
+            current_grid_force_x = ePlace_grid_force_x * ePlace_grid_force_scale
+            current_grid_force_y = ePlace_grid_force_y * ePlace_grid_force_scale
             # Create mask arrays
             mask_x = cell_grid_position_x[:, None, None] == grid_x
             mask_y = cell_grid_position_y[:, None, None] == grid_y
@@ -423,7 +430,7 @@ class CircuitEnv(Env):
         return wirelength
 
     def get_congestion(self) -> int:
-        return 0
+        #return 0
         # Route following right-angle algorithm
         routing_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
 

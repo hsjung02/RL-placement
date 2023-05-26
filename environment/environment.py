@@ -331,7 +331,10 @@ class CircuitEnv(Env):
 
             #척력 계산=======================================================================================================
             
-            elementwise_repulsive_force_x = np.divide(cell_position_x_diff, cell_position_distance)
+            elementwise_repulsive_force_x = np.multiply(cell_position_x_diff, np.divide(1,np.power(cell_position_distance,2))) #delta_x/r^3
+            elementwise_repulsive_force_x = pd.DataFrame(elementwise_repulsive_force_x)
+            elementwise_repulsive_force_x = elementwise_repulsive_force_x.fillna(0)
+            elementwise_repulsive_force_x = elementwise_repulsive_force_x.to_numpy()
             force_repulsive_x = np.sum(elementwise_repulsive_force_x, axis=0) #척력은 column 원소들끼리 더한다
             force_repulsive_x = np.multiply(force_repulsive_x, cell_charge) 
 

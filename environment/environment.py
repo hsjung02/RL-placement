@@ -215,7 +215,7 @@ class CircuitEnv(Env):
         self.eplace()
 
     def eplace(self) -> None:
-
+        return 0
         canvas_x = 2716400/2000
         canvas_y = 2650880/2000
 

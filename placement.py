@@ -10,26 +10,29 @@ from sb3_contrib import MaskablePPO
 from sb3_contrib.common.maskable.utils import get_action_masks
 from model.agent import CircuitExtractor, CircuitActorCriticPolicy
 policy_kwargs = dict(features_extractor_class=CircuitExtractor)
-model = MaskablePPO(CircuitActorCriticPolicy, env, policy_kwargs=policy_kwargs,verbose=0)
+model = MaskablePPO(CircuitActorCriticPolicy, env, policy_kwargs=policy_kwargs,verbose=1)
 model.policy
 
 done = False
 
 # %%
 # Before training
-
+from time import time
+start_time = time()
 obs, _ = env.reset()
 while not done:
     action_masks = get_action_masks(env)
     action, _states = model.predict(obs, action_masks=action_masks)
     obs, reward, done, truncated, info = env.step(action)
+    print("step done in", time()-start_time)
+    start_time = time()
 env.render()
 
 
 # %%
 # After training
 
-model.learn(100)
+model.learn(1)
 
 obs, _ = env.reset()
 while not done:

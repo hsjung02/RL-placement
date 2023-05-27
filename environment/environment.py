@@ -70,7 +70,7 @@ class CircuitEnv(Env):
         
         return features, reward, self.done, False, info
 
-    def render(self, mode="show"):
+    def render(self, mode="show", path=""):
         # Render function
         # fig, ax = plt.subplots(1)
         image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
@@ -113,6 +113,8 @@ class CircuitEnv(Env):
             plt.close(fig)
             print(type(image_from_plot))
             return image_from_plot
+        elif mode=="save":
+            plt.savefig(path)
 
     def get_static_features(self) -> Dict:
         # Static features

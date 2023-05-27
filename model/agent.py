@@ -21,8 +21,18 @@ class NodeEdge(nn.Module):
         
         num_nodes = h_nodes.shape[1]
         # Get node embeddings using edge embeddings
-        h_nodes_1 = th.gather(h_nodes, 1, adj_i.unsqueeze(-1).expand(-1,-1,h_nodes.size(-1)).to(th.int64))
-        h_nodes_2 = th.gather(h_nodes, 1, adj_j.unsqueeze(-1).expand(-1,-1,h_nodes.size(-1)).to(th.int64))
+        adj_i_long = adj_i[0].squeeze().long()
+        batch_indices = th.arange(h_nodes.shape[0]).view(-1, 1).to(adj_i.device)
+        batch_indices = batch_indices.expand(-1, adj_i_long.size(0))
+        adj_i_expanded = adj_i_long.expand(batch_indices.size(0), -1)
+        h_nodes_1 = h_nodes[batch_indices, adj_i_expanded]
+        adj_j_long = adj_j[0].squeeze().long()
+        batch_indices = th.arange(h_nodes.shape[0]).view(-1, 1).to(adj_j.device)
+        batch_indices = batch_indices.expand(-1, adj_j_long.size(0))
+        adj_j_expanded = adj_j_long.expand(batch_indices.size(0), -1)
+        h_nodes_2 = h_nodes[batch_indices, adj_j_expanded]
+        # h_nodes_1 = th.gather(h_nodes, 1, adj_i.unsqueeze(-1).expand(-1,-1,h_nodes.size(-1)).to(th.int64))
+        # h_nodes_2 = th.gather(h_nodes, 1, adj_j.unsqueeze(-1).expand(-1,-1,h_nodes.size(-1)).to(th.int64))
 
         # new_h_nodes = th.zeros_like(h_nodes)
         # for node in range(num_nodes):

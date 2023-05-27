@@ -1,4 +1,8 @@
-import numpy as np
+try:
+    import cupy as np
+    np.cuda.Device()  # This will raise an exception if no GPU is available
+except:
+    import numpy as np
 import torch as th
 from matplotlib import pyplot as plt
 import gymnasium as gym
@@ -430,7 +434,7 @@ class CircuitEnv(Env):
         return wirelength
 
     def get_congestion(self) -> int:
-        #return 0
+        return 0
         # Route following right-angle algorithm
         routing_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
 

@@ -50,6 +50,10 @@ class NodeEdge(nn.Module):
         # Normalize adjacency matrix for mean calculation
         adj = adj / adj.sum(dim=-1, keepdim=True)
 
+        # if not adj.is_cuda:
+        #     adj = adj.cuda()
+        # if not h_nodes.is_cuda:
+        #     h_nodes = h_nodes.cuda()
         # Computing mean values
         new_h_nodes = th.matmul(adj, h_nodes)
 

@@ -1,5 +1,9 @@
 # %%
 
+import torch as th
+if th.cuda.is_available():
+    th.set_default_tensor_type('torch.cuda.FloatTensor')
+
 from utils.parsing import load_netlist
 adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist")
 
@@ -10,7 +14,7 @@ from sb3_contrib import MaskablePPO
 from sb3_contrib.common.maskable.utils import get_action_masks
 from model.agent import CircuitExtractor, CircuitActorCriticPolicy
 policy_kwargs = dict(features_extractor_class=CircuitExtractor)
-model = MaskablePPO(CircuitActorCriticPolicy, env, policy_kwargs=policy_kwargs,verbose=1)
+model = MaskablePPO(CircuitActorCriticPolicy, env, n_steps=100, policy_kwargs=policy_kwargs,verbose=1)
 model.policy
 
 done = False
@@ -29,11 +33,24 @@ while not done:
 env.render()
 
 
+from stable_baselines3.common.callbacks import BaseCallback
+
+class ProgressCallback(BaseCallback):
+    def __init__(self, check_freq: int, verbose=1):
+        super(ProgressCallback, self).__init__(verbose)
+        self.check_freq = check_freq
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.check_freq == 0:
+            print(f"Total timesteps: {self.num_timesteps}")
+        return True
+
+callback = ProgressCallback(check_freq=100)
+
 # %%
 # After training
 
-model.learn(1)
-
+model.learn(total_timesteps=10, callback=callback)
 obs, _ = env.reset()
 while not done:
     action_masks = get_action_masks(env)

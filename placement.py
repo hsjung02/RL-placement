@@ -18,7 +18,7 @@ adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist(
 env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0])
 log_env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0])
 log_env = Monitor(log_env)
-print("made environments")
+print("Made environments")
 
 n_steps = 40
 batch_size = 20

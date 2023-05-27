@@ -254,7 +254,6 @@ class CircuitEnv(Env):
         self.eplace()
 
     def eplace(self) -> None:
-
         canvas_x = 2716400/2000
         canvas_y = 2650880/2000
 
@@ -452,7 +451,6 @@ class CircuitEnv(Env):
 
     def get_wirelength(self) -> int:
         # Get HPWL from two connected cells and sum up them
-
         cell_positions = np.array(self.cell_position)
         expanded_positions = cell_positions[:, np.newaxis, :]
         diffs = np.abs(expanded_positions - cell_positions)

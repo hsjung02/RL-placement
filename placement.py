@@ -1,5 +1,6 @@
 # %%
 
+import torch as th
 from utils.parsing import load_netlist
 from environment.environment import CircuitEnv
 from sb3_contrib import MaskablePPO
@@ -7,12 +8,12 @@ from sb3_contrib.common.maskable.utils import get_action_masks
 from model.agent import CircuitExtractor, CircuitActorCriticPolicy
 from utils.callback import ProgressCallback, VideoRecorderCallback
 from stable_baselines3.common.monitor import Monitor
-import torch as th
 
 if th.cuda.is_available():
     th.set_default_tensor_type("th.cuda.FloatTensor")
 # dtype = "th.cuda.FloatTensor" if th.cuda.is_available() else "th.FloatTensor"
 # th.set_default_tensor_type(dtype)
+
 
 adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist")
 env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0])
@@ -44,7 +45,6 @@ callback = ProgressCallback(check_freq=100)
 model.learn(total_timesteps=1000, callback=callback)
 # model.learn(total_timesteps=1000)
 
-# %%
 obs, _ = env.reset()
 done = False
 while not done:
@@ -54,4 +54,3 @@ while not done:
 env.render()
 # %%
 model.save("placement.pt")
-

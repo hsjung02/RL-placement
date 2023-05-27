@@ -32,7 +32,7 @@ class NodeEdge(nn.Module):
         #     adj[node] = 1
         #     th.mean(h_nodes*adj, dim=1)
         #     new_h_nodes[:,node] = th.mean(h_nodes*adj, dim=1)
-
+        
         if not hasattr(self, 'adj'):
             adj_i = adj_i.long()
             adj_j = adj_j.long()

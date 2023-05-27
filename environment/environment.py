@@ -98,7 +98,7 @@ class CircuitEnv(Env):
         # plt.show()
         #if mode=="save":
         #plt.savefig(path)
-        # from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
         # ax.imshow(image)
         # ax.axis('off')
         if mode=="show":
@@ -481,39 +481,37 @@ class CircuitEnv(Env):
         return wirelength
 
     def get_congestion(self) -> int:
-        return 0
         # Route following right-angle algorithm
-        routing_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
+        vertical_routing_grid = np.zeros((self.canvas_size-1, self.canvas_size))
+        horizontal_routing_grid = np.zeros((self.canvas_size, self.canvas_size-1))
 
-        for cell1 in range(self.cell_num):
-            connected = np.where(np.array(self.adjacency_matrix[cell1])!=0)[0]
+        adj_i = self.static_features["adj_i"]
+        adj_j = self.static_features["adj_j"]
+        n = len(adj_i)
 
-            for cell2 in connected:
-                if cell2 <= cell1:
-                    continue
-                routing_type = np.random.randint(2)
-                position_type = (self.cell_position[cell1][1]<=self.cell_position[cell2][1]) + (self.cell_position[cell1][0]<=self.cell_position[cell2][0])
-                x1 = min(self.cell_position[cell1][1], self.cell_position[cell2][1])
-                x2 = max(self.cell_position[cell1][1], self.cell_position[cell2][1])
-                y1 = min(self.cell_position[cell1][0], self.cell_position[cell2][0])
-                y2 = max(self.cell_position[cell1][0], self.cell_position[cell2][0])
-                if 31 in [x1, x2, y1, y2]:
-                    continue
-                if routing_type%2 == 0:
-                    routing_grid[y1, x1:x2] += 1
-                    if (routing_type+position_type)%2==0:
-                        routing_grid[y1:y2, x2] += 1
-                    else:
-                        routing_grid[y1:y2, x1] += 1
-                else:
-                    routing_grid[y2, x1:x2] += 1
-                if (routing_type+position_type)%2==0:
-                    routing_grid[y1:y2, x2] += 1
-                else:
-                    routing_grid[y1:y2, x1] += 1
+        for i in range(n):
+            cell1 = adj_i[i]
+            cell2 = adj_j[i]
+            if cell2 <= cell1:
+                continue
+            x1 = int(min(self.cell_position[cell1][1], self.cell_position[cell2][1])/self.grid_width-1/self.grid_width)
+            x2 = int(max(self.cell_position[cell1][1], self.cell_position[cell2][1])/self.grid_width-1/self.grid_width)
+            y1 = int(min(self.cell_position[cell1][0], self.cell_position[cell2][0])/self.grid_height-1/self.grid_height)
+            y2 = int(max(self.cell_position[cell1][0], self.cell_position[cell2][0])/self.grid_height-1/self.grid_height)
+            routing_type = np.random.randint(2)
+            position_type = (self.cell_position[cell1][1]<=self.cell_position[cell2][1]) + (self.cell_position[cell1][0]<=self.cell_position[cell2][0])
+
+            if routing_type%2 == 0:
+                horizontal_routing_grid[y1, x1:x2] += 1
+            else:
+                horizontal_routing_grid[y2, x1:x2] += 1
+            if (routing_type+position_type)%2==0:
+                vertical_routing_grid[y1:y2, x2] += 1
+            else:
+                vertical_routing_grid[y1:y2, x1] += 1
 
         # Congestion defined as maximum value in the routing grid
-        congestion = np.max(routing_grid)
+        congestion = np.max(vertical_routing_grid) + np.max(horizontal_routing_grid)
 
         return congestion
 
@@ -580,5 +578,5 @@ class CircuitEnv(Env):
         self.density_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
         self.std_position_x = np.array([])
         self.std_position_y = np.array([])
-        self.grid_width = 2716400/2000/self.canvas_size
-        self.grid_height = 2650880/2000/self.canvas_size
+        self.grid_width = 2716400/1000/self.canvas_size
+        self.grid_height = 2650880/1000/self.canvas_size

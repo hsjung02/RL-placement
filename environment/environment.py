@@ -140,15 +140,18 @@ class CircuitEnv(Env):
         # then adj_i = [0,0,1,1,2,2], adj_j = [1,2,2,0,0,1]
         # using adj_i and adj_j increases data efficiency
         # and simplify operations
-        adj_i = []
-        adj_j = []
-        for i in range(len(self.adjacency_matrix)):
-            for j in range(len(self.adjacency_matrix)):
-                if self.adjacency_matrix[i][j] != 0:
-                    adj_i.append(i)
-                    adj_j.append(j)
-        features["adj_i"] = np.array(adj_i)
-        features["adj_j"] = np.array(adj_j)
+        # adj_i = []
+        # adj_j = []
+        # for i in range(len(self.adjacency_matrix)):
+        #     for j in range(len(self.adjacency_matrix)):
+        #         if self.adjacency_matrix[i][j] != 0:
+        #             adj_i.append(i)
+        #             adj_j.append(j)
+        # features["adj_i"] = np.array(adj_i)
+        # features["adj_j"] = np.array(adj_j)
+        adj_i, adj_j = np.nonzero(self.adjacency_matrix)
+        features["adj_i"] = adj_i
+        features["adj_j"] = adj_j
 
         return features
 

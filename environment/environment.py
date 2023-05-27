@@ -1,12 +1,7 @@
-try:
-    import cupy as np
-    np.cuda.Device()  # This will raise an exception if no GPU is available
-except:
-    import numpy as np
+import numpy as np
 import torch as th
 from matplotlib import pyplot as plt
 import gymnasium as gym
-import pandas as pd
 from gymnasium import Env
 from gymnasium import spaces
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
@@ -75,10 +70,49 @@ class CircuitEnv(Env):
         
         return features, reward, self.done, False, info
 
+    def render(self, mode="show"):
+        # Render function
+        fig, ax = plt.subplots(1)
+        image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
+        # for i in range(self.cell_num):
+        #     for j in range(i+1, self.cell_num):
+        #         if self.adjacency_matrix[i,j] != 0:
+        #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
+        #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
+        #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
+        ax.scatter(8*self.std_position_x/self.grid_width, 8*self.std_position_y/self.grid_height, s=0.1)
+        # if mode=="show":
+        #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
+        #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
+        #   plt.text(50,300,"Reward: "+str(self.get_reward()), size="xx-large")
+        ax.text(50,270,"HPWL: "+str(int(self.get_wirelength())), size="xx-large")
+        ax.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
+        ax.text(50,300,"Reward: "+str(int(self.get_reward())), size="xx-large")
+        for i in range(self.canvas_size):
+            ax.plot([0,8*32], [8*i-1,8*i-1],c = 'gray', linestyle = '--', linewidth=0.5)
+        for j in range(self.canvas_size):
+            ax.plot([8*j-1,8*j-1], [0,8*32], c = 'gray', linestyle = '--', linewidth=0.5)
+        # fig = plt.imshow(image)
+        # fig.axes.get_xaxis().set_visible(False)
+        # fig.axes.get_yaxis().set_visible(False)
+        # plt.show()
+        #if mode=="save":
+        #plt.savefig(path)
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        ax.imshow(image)
+        ax.axis('off')
+        if mode=="show":
+            plt.show()
+        elif mode=="rgb_array":
+            canvas = FigureCanvas(fig)
+            canvas.draw()
+            
+            image_from_plot = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+            image_from_plot = image_from_plot.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-    def render(self):
-        self.show_canvas()
-        return
+            plt.close(fig)
+            print(type(image_from_plot))
+            return image_from_plot
 
     def get_static_features(self) -> Dict:
         # Static features
@@ -220,7 +254,7 @@ class CircuitEnv(Env):
         self.eplace()
 
     def eplace(self) -> None:
-        return 0
+
         canvas_x = 2716400/2000
         canvas_y = 2650880/2000
 
@@ -312,7 +346,7 @@ class CircuitEnv(Env):
         # Initial state
         # self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
         # self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
-        # self.show_canvas()
+        # self.render()
 
 
         grid_y, grid_x = np.mgrid[0:32, 0:32]
@@ -342,10 +376,7 @@ class CircuitEnv(Env):
 
             #척력 계산=======================================================================================================
             
-            elementwise_repulsive_force_x = np.multiply(cell_position_x_diff, np.divide(1,np.power(cell_position_distance,2))) #delta_x/r^3
-            elementwise_repulsive_force_x = pd.DataFrame(elementwise_repulsive_force_x)
-            elementwise_repulsive_force_x = elementwise_repulsive_force_x.fillna(0)
-            elementwise_repulsive_force_x = elementwise_repulsive_force_x.to_numpy()
+            elementwise_repulsive_force_x = np.divide(cell_position_x_diff, cell_position_distance) #delta_x/r^3
             force_repulsive_x = np.sum(elementwise_repulsive_force_x, axis=0) #척력은 column 원소들끼리 더한다
             force_repulsive_x = np.multiply(force_repulsive_x, cell_charge) 
 
@@ -422,14 +453,11 @@ class CircuitEnv(Env):
     def get_wirelength(self) -> int:
         # Get HPWL from two connected cells and sum up them
 
-        cell_position = np.array(self.cell_position)
-        valid_positions_mask = np.all(cell_position != -1, axis=1)
-        valid_cell_positions = cell_position[valid_positions_mask]
-        valid_adjacency_matrix = np.array(self.adjacency_matrix)[np.ix_(valid_positions_mask, valid_positions_mask)]
-        abs_diff = np.abs(valid_cell_positions[:, np.newaxis] - valid_cell_positions)
-        manhattan_distances = abs_diff.sum(axis=-1)
-        np.fill_diagonal(manhattan_distances, 0)
-        wirelength = np.sum(manhattan_distances * (valid_adjacency_matrix > 0)) + 2 * np.count_nonzero(valid_adjacency_matrix > 0)/2
+        cell_positions = np.array(self.cell_position)
+        expanded_positions = cell_positions[:, np.newaxis, :]
+        diffs = np.abs(expanded_positions - cell_positions)
+        distances = np.sum(diffs, axis=-1)
+        wirelength = np.sum(distances*self.adjacency_matrix)
 
         return wirelength
 
@@ -469,35 +497,6 @@ class CircuitEnv(Env):
         congestion = np.max(routing_grid)
 
         return congestion
-
-    def show_canvas(self) -> None:
-        # Render function
-        image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
-        # for i in range(self.cell_num):
-        #     for j in range(i+1, self.cell_num):
-        #         if self.adjacency_matrix[i,j] != 0:
-        #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
-        #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
-        #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
-        plt.scatter(8*self.std_position_x/self.grid_width, 8*self.std_position_y/self.grid_height, s=0.1)
-        # if mode=="show":
-        #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
-        #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
-        #   plt.text(50,300,"Reward: "+str(self.get_reward()), size="xx-large")
-        plt.text(50,270,"HPWL: "+str(int(self.get_wirelength())), size="xx-large")
-        plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
-        plt.text(50,300,"Reward: "+str(int(self.get_reward())), size="xx-large")
-        for i in range(self.canvas_size):
-            plt.plot([0,8*32], [8*i-1,8*i-1],c = 'gray', linestyle = '--', linewidth=0.5)
-        for j in range(self.canvas_size):
-            plt.plot([8*j-1,8*j-1], [0,8*32], c = 'gray', linestyle = '--', linewidth=0.5)
-        fig = plt.imshow(image)
-        fig.axes.get_xaxis().set_visible(False)
-        fig.axes.get_yaxis().set_visible(False)
-        plt.show()
-        #if mode=="save":
-        #plt.savefig(path)
-        return
 
     def init_properties(self,
                         adjacency_matrix: List,

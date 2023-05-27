@@ -32,30 +32,24 @@ class NodeEdge(nn.Module):
         #     adj[node] = 1
         #     th.mean(h_nodes*adj, dim=1)
         #     new_h_nodes[:,node] = th.mean(h_nodes*adj, dim=1)
-        adj_i = adj_i.long()
-        adj_j = adj_j.long()
-        adj = th.zeros(num_nodes, num_nodes)
-        adj[adj_i, adj_j] = 1
-        adj[adj_j, adj_i] = 1
-        adj += th.eye(adj.size(0))
 
-        # Add extra dimension for broadcasting
-        # adj = adj[None, :, :]
+        if not hasattr(self, 'adj'):
+            adj_i = adj_i.long()
+            adj_j = adj_j.long()
+            adj = th.zeros(num_nodes, num_nodes)
+            adj[adj_i, adj_j] = 1
+            adj[adj_j, adj_i] = 1
+            adj += th.eye(adj.size(0))
+            adj = adj / adj.sum(dim=-1, keepdim=True)
+            # adj = adj.unsqueeze(0)  # shape: (1, node_num, node_num)
 
-        adj = adj.unsqueeze(0)  # shape: (1, node_num, node_num)
-
+            setattr(self, 'adj', adj)
         # Repeat B to match the batch size of A
-        adj = adj.repeat(h_nodes.size(0), 1, 1)  # shape: (batch_size, node_num, node_num)
-
-        # Normalize adjacency matrix for mean calculation
-        adj = adj / adj.sum(dim=-1, keepdim=True)
-
-        # if not adj.is_cuda:
-        #     adj = adj.cuda()
-        # if not h_nodes.is_cuda:
-        #     h_nodes = h_nodes.cuda()
+        adj = getattr(self, 'adj')
+        # adj = adj.repeat(h_nodes.size(0), 1, 1)  # shape: (batch_size, node_num, node_num)
         # Computing mean values
-        new_h_nodes = th.matmul(adj, h_nodes)
+        #new_h_nodes = th.matmul(adj, h_nodes)
+        new_h_nodes = th.einsum('ik,bkj->bij', adj, h_nodes)
 
         return self.fc(h_nodes_1+h_nodes_2), new_h_nodes
 

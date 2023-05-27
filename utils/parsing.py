@@ -16,7 +16,7 @@ grid_width =canvas_x/(canvas_grid_x_num) #width unit
 grid_height=canvas_y/(canvas_grid_y_num) #height unit
 
 hard_macro_num = 16 #adjacency index 0~15
-soft_macro_num = 2400 #adjacency index 16~4815
+soft_macro_num = 4800 #adjacency index 16~4815
 pin_num = 1211 #adjacency index 4816~6026
 std_num = 191987
 

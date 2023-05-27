@@ -20,8 +20,8 @@ log_env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_in
 log_env = Monitor(log_env)
 print("Made environments")
 
-n_steps = 40
-batch_size = 20
+n_steps = 32
+batch_size = 16
 total_timesteps = 3000
 
 policy_kwargs = dict(features_extractor_class=CircuitExtractor)
@@ -36,13 +36,13 @@ print("Model setting done")
 # %%
 # Before training
 
-obs, _ = env.reset()
-done = False
-while not done:
-    action_masks = get_action_masks(env)
-    action, _states = model.predict(obs, action_masks=action_masks)
-    obs, reward, done, truncated, info = env.step(action)
-env.render()
+# obs, _ = env.reset()
+# done = False
+# while not done:
+#     action_masks = get_action_masks(env)
+#     action, _states = model.predict(obs, action_masks=action_masks)
+#     obs, reward, done, truncated, info = env.step(action)
+# env.render()
 
 print("Start training")
 start_time = time()
@@ -64,4 +64,4 @@ while not done:
     obs, reward, done, truncated, info = env.step(action)
 env.render()
 # %%
-model.save("placement_nsteps%d_batch%d"%(n_stseps, batch_size))
+model.save("placement_nsteps%d_batch%d"%(n_steps, batch_size))

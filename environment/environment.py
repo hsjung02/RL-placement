@@ -34,9 +34,9 @@ class CircuitEnv(Env):
         self.observation_space = spaces.Dict({
             "metadata":spaces.Box(low=0, high=1, shape=(10,), dtype=np.float64),
             "nodes":spaces.Box(low=-1, high=100, shape=(len(self.cells),8), dtype=np.float64),
-            "adj_i":spaces.Box(low=0, high=4, shape=(edge_num,), dtype=np.int32),
-            "adj_j":spaces.Box(low=0, high=4, shape=(edge_num,), dtype=np.int32),
-            "current_node":spaces.Box(low=0, high=100, shape=(1,), dtype=np.int32)
+            "adj_i":spaces.Box(low=0, high=7000, shape=(edge_num,), dtype=np.int32),
+            "adj_j":spaces.Box(low=0, high=7000, shape=(edge_num,), dtype=np.int32),
+            "current_node":spaces.Box(low=0, high=16, shape=(1,), dtype=np.int32)
         })
     
     def reset(self):
@@ -72,7 +72,7 @@ class CircuitEnv(Env):
 
     def render(self, mode="show"):
         # Render function
-        fig, ax = plt.subplots(1)
+        # fig, ax = plt.subplots(1)
         image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
         # for i in range(self.cell_num):
         #     for j in range(i+1, self.cell_num):
@@ -80,27 +80,27 @@ class CircuitEnv(Env):
         #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
         #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
         #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
-        ax.scatter(8*self.std_position_x/self.grid_width, 8*self.std_position_y/self.grid_height, s=0.1)
+        plt.scatter(8*self.std_position_x/self.grid_width, 8*self.std_position_y/self.grid_height, s=0.1)
         # if mode=="show":
         #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
         #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
         #   plt.text(50,300,"Reward: "+str(self.get_reward()), size="xx-large")
-        ax.text(50,270,"HPWL: "+str(int(self.get_wirelength())), size="xx-large")
-        ax.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
-        ax.text(50,300,"Reward: "+str(int(self.get_reward())), size="xx-large")
+        plt.text(50,270,"HPWL: "+str(int(self.get_wirelength())), size="xx-large")
+        plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
+        plt.text(50,300,"Reward: "+str(int(self.get_reward())), size="xx-large")
         for i in range(self.canvas_size):
-            ax.plot([0,8*32], [8*i-1,8*i-1],c = 'gray', linestyle = '--', linewidth=0.5)
+            plt.plot([0,8*32], [8*i-1,8*i-1],c = 'gray', linestyle = '--', linewidth=0.5)
         for j in range(self.canvas_size):
-            ax.plot([8*j-1,8*j-1], [0,8*32], c = 'gray', linestyle = '--', linewidth=0.5)
-        # fig = plt.imshow(image)
-        # fig.axes.get_xaxis().set_visible(False)
-        # fig.axes.get_yaxis().set_visible(False)
+            plt.plot([8*j-1,8*j-1], [0,8*32], c = 'gray', linestyle = '--', linewidth=0.5)
+        fig = plt.imshow(image)
+        fig.axes.get_xaxis().set_visible(False)
+        fig.axes.get_yaxis().set_visible(False)
         # plt.show()
         #if mode=="save":
         #plt.savefig(path)
-        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-        ax.imshow(image)
-        ax.axis('off')
+        # from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        # ax.imshow(image)
+        # ax.axis('off')
         if mode=="show":
             plt.show()
         elif mode=="rgb_array":
@@ -284,25 +284,38 @@ class CircuitEnv(Env):
         # Initial random placement 
         soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size)
         soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size)
+        # soft_macro_position_x = th.rand(soft_macro_num)*self.grid_width *(self.canvas_size)
+        # soft_macro_position_y = th.rand(soft_macro_num)*self.grid_height*(self.canvas_size)
         # Hard macro position and pin positions are fixed
         hard_macro_position_x = np.array([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
         hard_macro_position_y = np.array([self.cell_position[c][0]*self.grid_height for c in self.macro_indices])
+        # hard_macro_position_x = th.tensor([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
+        # hard_macro_position_y = th.tensor([self.cell_position[c][0]*self.grid_height for c in self.macro_indices])
         pin_position_x = np.array([self.cells[c]['x']*self.grid_width for c in self.pin_indices])
         pin_position_y = np.array([self.cells[c]['y']*self.grid_height for c in self.pin_indices])
+        # pin_position_x = th.tensor([self.cells[c]['x']*self.grid_width for c in self.pin_indices])
+        # pin_position_y = th.tensor([self.cells[c]['y']*self.grid_height for c in self.pin_indices])
 
         # Concatenate hard macro, soft macro, pin positions
         cell_position_x = np.hstack([hard_macro_position_x, soft_macro_position_x, pin_position_x])
         cell_position_y = np.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
+        # cell_position_x = th.hstack([hard_macro_position_x, soft_macro_position_x, pin_position_x])
+        # cell_position_y = th.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
         for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
                 self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
         
         cell_grid_position_x = np.array(hard_macro_num + soft_macro_num + pin_num)
         cell_grid_position_y = np.array(hard_macro_num + soft_macro_num + pin_num)
+        # cell_grid_position_x = th.array(hard_macro_num + soft_macro_num + pin_num)
+        # cell_grid_position_y = th.array(hard_macro_num + soft_macro_num + pin_num)
         
         soft_macro_position_delta_x = np.zeros(soft_macro_num)
         soft_macro_position_delta_y = np.zeros(soft_macro_num)
+        # soft_macro_position_delta_x = th.zeros((1,soft_macro_num))
+        # soft_macro_position_delta_y = th.zeros((1,soft_macro_num))
 
         cell_charge = np.zeros(hard_macro_num+soft_macro_num+pin_num)
+        # cell_charge = th.zeros((1,hard_macro_num+soft_macro_num+pin_num))
         for i in range(hard_macro_num):
             cell_charge[i] = self.cells[i]['width']*self.cells[i]['height']
         cell_charge[hard_macro_num:] = self.cells[hard_macro_num+1]['width']*self.cells[hard_macro_num+1]['height']
@@ -310,11 +323,16 @@ class CircuitEnv(Env):
         
         ePlace_grid_force_x = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 x방향 힘
         ePlace_grid_force_y = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 y방향 힘
+        # ePlace_grid_force_x = th.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 x방향 힘
+        # ePlace_grid_force_y = th.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 y방향 힘
         
         #calculate grid force==================================================
         canvas = np.array(self.canvas)
         ePlace_grid_force_x = np.zeros(canvas.shape)
         ePlace_grid_force_y = np.zeros(canvas.shape)
+        # canvas = th.tensor(self.canvas)
+        # ePlace_grid_force_x = th.zeros((1,canvas.shape))
+        # ePlace_grid_force_y = th.zeros((1,canvas.shape))
 
         # Create masks for each condition
         mask_canvas = canvas[1:30, 1:30] != -1

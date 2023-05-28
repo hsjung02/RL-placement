@@ -32,8 +32,9 @@ while not done:
     action_masks = get_action_masks(env)
     action, _states = model.predict(obs, action_masks=action_masks)
     obs, reward, done, truncated, info = env.step(action)
-env.render(mode="save", path="before.png")
+env.render(mode="save", path="./src/before.png")
 
+del model
 
 model = MaskablePPO.load("./model/nsteps128_batch32_total3000")
 
@@ -43,4 +44,4 @@ while not done:
     action_masks = get_action_masks(env)
     action, _states = model.predict(obs, action_masks=action_masks)
     obs, reward, done, truncated, info = env.step(action)
-env.render(mode="save", path="after.png")
+env.render(mode="save", path="./src/after.png")

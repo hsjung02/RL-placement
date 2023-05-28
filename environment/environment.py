@@ -34,9 +34,9 @@ class CircuitEnv(Env):
         self.observation_space = spaces.Dict({
             "metadata":spaces.Box(low=0, high=1, shape=(10,), dtype=np.float64),
             "nodes":spaces.Box(low=-1, high=100, shape=(len(self.cells),8), dtype=np.float64),
-            "adj_i":spaces.Box(low=0, high=7000, shape=(edge_num,), dtype=np.int32),
-            "adj_j":spaces.Box(low=0, high=7000, shape=(edge_num,), dtype=np.int32),
-            "current_node":spaces.Box(low=0, high=16, shape=(1,), dtype=np.int32)
+            "adj_i":spaces.Box(low=0, high=2215, shape=(edge_num,), dtype=np.int32),
+            "adj_j":spaces.Box(low=0, high=2215, shape=(edge_num,), dtype=np.int32),
+            "current_node":spaces.Box(low=0, high=4, shape=(1,), dtype=np.int32)
         })
     
     def reset(self):

@@ -13,16 +13,15 @@ from time import time
 dtype = "torch.cuda.FloatTensor" if th.cuda.is_available() else "torch.FloatTensor"
 th.set_default_tensor_type(dtype)
 
+lamb = 0
 
 adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist")
-env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0])
-log_env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,0])
-log_env = Monitor(log_env)
+env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,lamb])
 print("Made environments")
 
 n_steps = 128
 batch_size = 32
-total_timesteps = 3000
+total_timesteps = 15000
 
 policy_kwargs = dict(features_extractor_class=CircuitExtractor)
 model = MaskablePPO(policy=CircuitActorCriticPolicy,
@@ -49,11 +48,9 @@ print("Start training")
 # %%
 # After training
 
-callback = ProgressCallback(check_freq=100)
-# callback = VideoRecorderCallback(log_env, render_freq=1)
+callback = ProgressCallback(check_freq=1500)
 
 model.learn(total_timesteps=total_timesteps, callback=callback)
-# model.learn(total_timesteps=1000)
 
 obs, _ = env.reset()
 done = False
@@ -63,4 +60,4 @@ while not done:
     obs, reward, done, truncated, info = env.step(action)
 env.render()
 # %%
-model.save("nsteps%d_batch%d_total%d"%(n_steps, batch_size, total_timesteps))
+model.save("lambda_%d"%(lamb))

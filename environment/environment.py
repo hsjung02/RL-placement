@@ -259,11 +259,6 @@ class CircuitEnv(Env):
         self.eplace()
 
     def eplace(self) -> None:
-        canvas_x = 2716400/2000
-        canvas_y = 2650880/2000
-
-        
-        
         #parameters===================================================
         #합이 1이 되도록 맞출것
         weight_attractive=0.2
@@ -582,5 +577,7 @@ class CircuitEnv(Env):
         self.density_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
         self.std_position_x = np.array([])
         self.std_position_y = np.array([])
-        self.grid_width = 2716400/1000/self.canvas_size
-        self.grid_height = 2650880/1000/self.canvas_size
+        canvas_x = 1977172/2000
+        canvas_y = 1410022/2000
+        self.grid_width = canvas_x/self.canvas_size
+        self.grid_height = canvas_y/self.canvas_size

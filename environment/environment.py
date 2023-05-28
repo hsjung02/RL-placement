@@ -70,7 +70,7 @@ class CircuitEnv(Env):
         
         return features, reward, self.done, False, info
 
-    def render(self, mode="show"):
+    def render(self, mode="show",path=""):
         # Render function
         # fig, ax = plt.subplots(1)
         image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
@@ -80,7 +80,7 @@ class CircuitEnv(Env):
         #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
         #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
         #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
-        plt.scatter(8*self.std_position_x/self.grid_width, 8*self.std_position_y/self.grid_height, s=0.1)
+        plt.scatter(8*self.std_position_x, 8*self.std_position_y, s=0.1)
         # if mode=="show":
         #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
         #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
@@ -113,6 +113,8 @@ class CircuitEnv(Env):
             plt.close(fig)
             print(type(image_from_plot))
             return image_from_plot
+        elif mode=="save":
+            plt.savefig(path)
 
     def get_static_features(self) -> Dict:
         # Static features
@@ -454,11 +456,13 @@ class CircuitEnv(Env):
             # cell_position_y[hard_macro_num : hard_macro_num + soft_macro_num] = np.add(cell_position_y[hard_macro_num : hard_macro_num + soft_macro_num], soft_macro_position_delta_y)
 
             # Avoid getting out of the canvas by clipping positions
-            cell_position_x = np.clip(cell_position_x, a_min=0, a_max=self.grid_width*self.canvas_size)
-            cell_position_y = np.clip(cell_position_y, a_min=0, a_max=self.grid_height*self.canvas_size)
+            cell_position_x = np.clip(cell_position_x, a_min=0, a_max=self.grid_width*(self.canvas_size-1))
+            cell_position_y = np.clip(cell_position_y, a_min=0, a_max=self.grid_height*(self.canvas_size-1))
             
             
         # Save eplace result
+        cell_position_x /= self.grid_width
+        cell_position_y /= self.grid_height
         self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
         self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
         for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
@@ -494,10 +498,10 @@ class CircuitEnv(Env):
             cell2 = adj_j[i]
             if cell2 <= cell1:
                 continue
-            x1 = int(min(self.cell_position[cell1][1], self.cell_position[cell2][1])/self.grid_width-1/self.grid_width)
-            x2 = int(max(self.cell_position[cell1][1], self.cell_position[cell2][1])/self.grid_width-1/self.grid_width)
-            y1 = int(min(self.cell_position[cell1][0], self.cell_position[cell2][0])/self.grid_height-1/self.grid_height)
-            y2 = int(max(self.cell_position[cell1][0], self.cell_position[cell2][0])/self.grid_height-1/self.grid_height)
+            x1 = int(min(self.cell_position[cell1][1], self.cell_position[cell2][1]))
+            x2 = int(max(self.cell_position[cell1][1], self.cell_position[cell2][1]))
+            y1 = int(min(self.cell_position[cell1][0], self.cell_position[cell2][0]))
+            y2 = int(max(self.cell_position[cell1][0], self.cell_position[cell2][0]))
             routing_type = np.random.randint(2)
             position_type = (self.cell_position[cell1][1]<=self.cell_position[cell2][1]) + (self.cell_position[cell1][0]<=self.cell_position[cell2][0])
 

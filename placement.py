@@ -35,14 +35,15 @@ model = MaskablePPO(policy=CircuitActorCriticPolicy,
 print("Model setting done")
 # %%
 # Before training
-
+start_time = time()
 obs, _ = env.reset()
 done = False
 while not done:
     action_masks = get_action_masks(env)
     action, _states = model.predict(obs, action_masks=action_masks)
     obs, reward, done, truncated, info = env.step(action)
-env.render(mode="save", path="./figure/test1.png")
+print("done in %fs"%(time()-start_time))
+env.render()
 
 print("Start training")
 # %%

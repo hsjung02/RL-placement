@@ -561,7 +561,7 @@ class CircuitEnv(Env):
         self.density_grid = np.array([[0 for i in range(self.canvas_size-1)] for j in range(self.canvas_size-1)])
         self.std_position_x = np.array([])
         self.std_position_y = np.array([])
-        canvas_x = 1977172/2000
-        canvas_y = 1410022/2000
+        canvas_x = 1977172/2000*1.5
+        canvas_y = 1410022/2000*1.5
         self.grid_width = canvas_x/self.canvas_size
         self.grid_height = canvas_y/self.canvas_size

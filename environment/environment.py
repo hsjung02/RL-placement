@@ -282,40 +282,29 @@ class CircuitEnv(Env):
         pin_num = len(self.pin_indices)
 
         # Initial random placement 
-        soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size)
-        soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size)
-        # soft_macro_position_x = th.rand(soft_macro_num)*self.grid_width *(self.canvas_size)
-        # soft_macro_position_y = th.rand(soft_macro_num)*self.grid_height*(self.canvas_size)
+        soft_macro_position_x = np.random.rand(soft_macro_num)*self.grid_width *(self.canvas_size-1)
+        soft_macro_position_y = np.random.rand(soft_macro_num)*self.grid_height*(self.canvas_size-1)
         # Hard macro position and pin positions are fixed
         hard_macro_position_x = np.array([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
         hard_macro_position_y = np.array([self.cell_position[c][0]*self.grid_height for c in self.macro_indices])
-        # hard_macro_position_x = th.tensor([self.cell_position[c][1]*self.grid_width for c in self.macro_indices])
-        # hard_macro_position_y = th.tensor([self.cell_position[c][0]*self.grid_height for c in self.macro_indices])
+
         pin_position_x = np.array([self.cells[c]['x']*self.grid_width for c in self.pin_indices])
         pin_position_y = np.array([self.cells[c]['y']*self.grid_height for c in self.pin_indices])
-        # pin_position_x = th.tensor([self.cells[c]['x']*self.grid_width for c in self.pin_indices])
-        # pin_position_y = th.tensor([self.cells[c]['y']*self.grid_height for c in self.pin_indices])
 
         # Concatenate hard macro, soft macro, pin positions
         cell_position_x = np.hstack([hard_macro_position_x, soft_macro_position_x, pin_position_x])
         cell_position_y = np.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
-        # cell_position_x = th.hstack([hard_macro_position_x, soft_macro_position_x, pin_position_x])
-        # cell_position_y = th.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
+
         for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
-                self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
+                self.cell_position[i] = [cell_position_y[i]/self.grid_height, cell_position_x[i]/self.grid_width]
         
         cell_grid_position_x = np.array(hard_macro_num + soft_macro_num + pin_num)
         cell_grid_position_y = np.array(hard_macro_num + soft_macro_num + pin_num)
-        # cell_grid_position_x = th.array(hard_macro_num + soft_macro_num + pin_num)
-        # cell_grid_position_y = th.array(hard_macro_num + soft_macro_num + pin_num)
         
         soft_macro_position_delta_x = np.zeros(soft_macro_num)
         soft_macro_position_delta_y = np.zeros(soft_macro_num)
-        # soft_macro_position_delta_x = th.zeros((1,soft_macro_num))
-        # soft_macro_position_delta_y = th.zeros((1,soft_macro_num))
 
         cell_charge = np.zeros(hard_macro_num+soft_macro_num+pin_num)
-        # cell_charge = th.zeros((1,hard_macro_num+soft_macro_num+pin_num))
         for i in range(hard_macro_num):
             cell_charge[i] = self.cells[i]['width']*self.cells[i]['height']
         cell_charge[hard_macro_num:] = self.cells[hard_macro_num+1]['width']*self.cells[hard_macro_num+1]['height']
@@ -323,16 +312,11 @@ class CircuitEnv(Env):
         
         ePlace_grid_force_x = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 x방향 힘
         ePlace_grid_force_y = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 y방향 힘
-        # ePlace_grid_force_x = th.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 x방향 힘
-        # ePlace_grid_force_y = th.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 y방향 힘
         
         #calculate grid force==================================================
         canvas = np.array(self.canvas)
         ePlace_grid_force_x = np.zeros(canvas.shape)
         ePlace_grid_force_y = np.zeros(canvas.shape)
-        # canvas = th.tensor(self.canvas)
-        # ePlace_grid_force_x = th.zeros((1,canvas.shape))
-        # ePlace_grid_force_y = th.zeros((1,canvas.shape))
 
         # Create masks for each condition
         mask_canvas = canvas[1:30, 1:30] != -1
@@ -361,8 +345,8 @@ class CircuitEnv(Env):
         
         
         # Initial state
-        # self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
-        # self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
+        # self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]/self.grid_width
+        # self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]/self.grid_height
         # self.render()
 
 

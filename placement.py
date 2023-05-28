@@ -21,7 +21,7 @@ log_env = Monitor(log_env)
 print("Made environments")
 
 n_steps = 128
-batch_size = 64
+batch_size = 32
 total_timesteps = 3000
 
 policy_kwargs = dict(features_extractor_class=CircuitExtractor)

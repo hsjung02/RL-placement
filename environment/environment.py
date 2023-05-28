@@ -72,22 +72,27 @@ class CircuitEnv(Env):
 
     def render(self, mode="show", path=""):
         # Render function
-        # fig, ax = plt.subplots(1)
+
+        # Show hard macros
         image = np.array([[self.color_list[self.canvas[j//8][i//8]+1] for i in range(8*self.canvas_size)] for j in range(8*self.canvas_size)])
+
+        # # Show connections
         # for i in range(self.cell_num):
         #     for j in range(i+1, self.cell_num):
         #         if self.adjacency_matrix[i,j] != 0:
         #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
         #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
         #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
+
+        # Show soft macros
         plt.scatter(8*self.std_position_x, 8*self.std_position_y, s=2, marker='s')
-        # if mode=="show":
-        #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
-        #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
-        #   plt.text(50,300,"Reward: "+str(self.get_reward()), size="xx-large")
+
+        # Write metrics
         plt.text(50,270,"HPWL: "+str(int(self.get_wirelength())), size="xx-large")
         plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
         plt.text(50,300,"Reward: "+str(int(self.get_reward())), size="xx-large")
+
+        # Grid lines
         for i in range(self.canvas_size):
             plt.plot([0,8*32], [8*i-1,8*i-1],c = 'gray', linestyle = '--', linewidth=0.5)
         for j in range(self.canvas_size):
@@ -95,17 +100,13 @@ class CircuitEnv(Env):
         fig = plt.imshow(image)
         fig.axes.get_xaxis().set_visible(False)
         fig.axes.get_yaxis().set_visible(False)
-        # plt.show()
-        #if mode=="save":
-        #plt.savefig(path)
+
         from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-        # ax.imshow(image)
-        # ax.axis('off')
+
         if mode=="show":
             plt.show()
         elif mode=="rgb_array":
-            canvas = FigureCanvas(fig)
-            canvas.draw()
+            plt.canvas.draw()
             
             image_from_plot = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
             image_from_plot = image_from_plot.reshape(fig.canvas.get_width_height()[::-1] + (3,))
@@ -114,7 +115,8 @@ class CircuitEnv(Env):
             print(type(image_from_plot))
             return image_from_plot
         elif mode=="save":
-            plt.savefig(path)
+            plt.savefig(path, bbox_inches='tight')
+            plt.clf()
 
     def get_static_features(self) -> Dict:
         # Static features

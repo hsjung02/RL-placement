@@ -20,16 +20,14 @@ class ProgressCallback(BaseCallback): # Log for every check_freq timesteps
     
 
 class FigureRecorderCallback(BaseCallback):
-    def __init__(self, verbose=0):
+    def __init__(self, verbose=0, render_freq:int = 100):
         super().__init__(verbose)
+        self.render_freq = render_freq
 
     def _on_step(self):
-        # Plot values (here a random variable)
-        figure = plt.figure()
-        figure.add_subplot().plot(np.random.random(3))
-        # Close the figure after logging it
-        self.logger.record("trajectory/figure", Figure(figure, close=True), exclude=("stdout", "log", "json", "csv"))
-        plt.close()
+        if self.n_calls % self.render_freq != 0:
+            return True
+        self.training_env.render(mode="save", path="./figure/%d"%(self.n_calls))
         return True
 
 class VideoRecorderCallback(BaseCallback):

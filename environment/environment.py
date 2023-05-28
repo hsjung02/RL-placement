@@ -80,7 +80,7 @@ class CircuitEnv(Env):
         #             y = [8*self.cell_position[i][0]+3, 8*self.cell_position[j][0]+3]
         #             x = [8*self.cell_position[i][1]+3, 8*self.cell_position[j][1]+3]
         #             plt.plot(x, y, color="red", linewidth=0.8, alpha=0.7)
-        plt.scatter(8*self.std_position_x, 8*self.std_position_y, s=0.1)
+        plt.scatter(8*self.std_position_x, 8*self.std_position_y, s=2, marker='s')
         # if mode=="show":
         #   plt.text(50,270,"HPWL: "+str(self.get_wirelength()), size="xx-large")
         #   plt.text(50,285,"Congestion: "+str(self.get_congestion()), size="xx-large")
@@ -264,16 +264,16 @@ class CircuitEnv(Env):
         weight_attractive=0.2
         weight_repulsive=1-weight_attractive
 
-        max_iteration = 20
+        max_iteration = 15
         dt = 0.5
         mass = 1
         
         #scale parameters
         #force_scale = 1e+4 #for random force
-        repulsive_force_scale = 1e+7
-        position_scale = 1e-6
-        ePlace_grid_force_scale = 200
-        hook_constant = 1e+4
+        repulsive_force_scale = 4e+6
+        position_scale = 5e-7
+        ePlace_grid_force_scale = 2e+4
+        hook_constant = 5e+3
         #=============================================================
 
 
@@ -333,7 +333,8 @@ class CircuitEnv(Env):
                                                             np.where(mask_canvas, 0.5, 0)))
 
         ePlace_grid_force_y[1:30, 1:30] = np.where(mask_y_greater_down & mask_canvas, 1, 
-                                                np.where(mask_y_greater_up & mask_canvas, -1, 0))
+                                                np.where(mask_y_greater_up & mask_canvas, -1, 
+                                                            np.where(mask_canvas, 0.5, 0)))
 
        
         boundary_grid_force = 0.2

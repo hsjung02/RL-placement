@@ -8,23 +8,23 @@ import pickle
 #global variables==============================================
 canvas_grid_x_num = 32
 canvas_grid_y_num = 32
-# canvas_x = 2716400/2000
-# canvas_y = 2650880/2000
-canvas_x = 2716400/1000
-canvas_y = 2650880/1000
+canvas_x = 1977170/2000
+canvas_y = 1410020/2000
+#canvas_x = 2716400/1000
+#canvas_y = 2650880/1000
 grid_width =canvas_x/(canvas_grid_x_num) #width unit
 grid_height=canvas_y/(canvas_grid_y_num) #height unit
 
-hard_macro_num = 16 #adjacency index 0~15
-soft_macro_num = 4800 #adjacency index 16~4815
+hard_macro_num = 4 #adjacency index 0~15
+soft_macro_num = 1000 #adjacency index 16~4815
 pin_num = 1211 #adjacency index 4816~6026
-std_num = 191987
+std_num = 35973
 
 
 std_width = 8/grid_width
-std_height = 1.2/grid_height
+std_height = 1.71/grid_height
 
-soft_macro_area = std_width * std_height *40
+soft_macro_area = std_width * std_height *36
 soft_macro_size = sqrt(soft_macro_area)
 
 
@@ -104,7 +104,7 @@ def read_cells(filename):
         
         
             if(read_pin_en):
-                if '- pin' in line:
+                if 'pin' in line:
                     data = line.split()
                     pin_name = data[1] #pin의 이름
                     pin_connected_net = data[4] #pin이 어떤 net에 연결되어 있는지
@@ -355,7 +355,7 @@ def load_netlist(path="./netlist"):
 
 if __name__ == "__main__":
 
-    filename = './netlist/ispd18_test8.input'
+    filename = './netlist/ispd18_test3'
 
     #before clustering==========
     hard_macros, stds, pins, hard_macro_name, std_name = read_cells(filename)

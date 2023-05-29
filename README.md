@@ -4,7 +4,7 @@ RL-placement is an automated framework for RL-based chip placement.
 
 ## Placement process
 1. Place hard macro cells using nerual network trained by deepRL algorithm
-2. Place soft macro cells(:=clustered standard cells) by standard cell placer(e.g. heuristic algorithms) or by neural network
+2. Place soft macro cells(:=clustered standard cells) by standard cell placer(e.g. heuristic algorithms)
 
 ## Training process
 To run RL algorithm, following processes are conducted:
@@ -13,9 +13,9 @@ To run RL algorithm, following processes are conducted:
 3. When soft macro cell placement is done, evaluated reward function as the weighted sum of wirelength and routing congestion.
 4. Update neural network.
 
-![gif_std_nn](./src/placement_gif_std_nn.gif)
+![placement_gif](./src/placement_gif.gif)
 
-Training process. Soft macro cells are placed by neural network
+Training process. Soft macro cells are placed by modified force-directed method.
 
 
 ## File tree
@@ -61,10 +61,11 @@ Training process. Soft macro cells are placed by neural network
 
 ## Run
 
-1. Run placement.ipynb
+1. Run `python route_using_model.py --model_name ./model/lambda_50 --lamb 50`
 
 ## References
 
 1. [Mirhoseini, A., et al. (2020). Chip Placement with Deep Reinforcement Learning, arXiv:2004.10746(doi: https://doi.org/10.48550/arXiv.2004.10746)](https://arxiv.org/abs/2004.10746)
 2. [Yue, S., et al. (2022). Scalability and Generalization of Circuit Training for Chip Floorplanning. Proceedings of the 2022 International Symposium on Physical Design. Virtual Event, Canada, Association for Computing Machinery: 65–70.](https://dl.acm.org/doi/abs/10.1145/3505170.3511478)
 3. https://github.com/google-research/circuit_training.git repository
+4. https://github.com/DLR-RM/stable-baselines3.git repository

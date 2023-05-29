@@ -26,7 +26,6 @@ if __name__ == "__main__":
         action_masks = get_action_masks(env)
         action, _states = model.predict(obs, action_masks=action_masks)
         obs, reward, done, truncated, info = env.step(action)
-    env.render(mode="save", path="before.png")
     cell_positions = np.asarray(env.cell_position, dtype=int)
     adj_i = env.static_features["adj_i"]
     adj_j = env.static_features["adj_j"]

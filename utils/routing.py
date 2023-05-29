@@ -4,9 +4,9 @@ import heapq
 def routing(cell_positions, adj_i, adj_j) -> int:
 
 
-    capacity = 1000
+    capacity = 15000
     grid_size = 32
-    penalty = 50
+    penalty = 5
 
     graph = {}
     for i in range(grid_size):

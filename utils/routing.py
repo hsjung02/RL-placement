@@ -6,7 +6,7 @@ def routing(cell_positions, adj_i, adj_j) -> int:
 
     capacity = 15000
     grid_size = 32
-    penalty = 5
+    penalty = 10
 
     graph = {}
     for i in range(grid_size):

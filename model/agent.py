@@ -6,6 +6,12 @@ from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 from torch import nn
 import torch as th
 
+MAX_MACRO_NUM = 16
+MAX_STD_NUM = 4800
+MAX_PIN_NUM = 1211
+MAX_CELL_NUM = MAX_MACRO_NUM+MAX_STD_NUM+MAX_PIN_NUM
+MAX_EDGE_NUM = 933418
+
 class NodeEdge(nn.Module):
     def __init__(self,
                  embedding_dim: int = 8) -> None:
@@ -43,22 +49,30 @@ class NodeEdge(nn.Module):
         #     th.mean(h_nodes*adj, dim=1)
         #     new_h_nodes[:,node] = th.mean(h_nodes*adj, dim=1)
         
-        if not hasattr(self, 'adj'):
-            adj_i = adj_i.long()
-            adj_j = adj_j.long()
-            adj = th.zeros(num_nodes, num_nodes)
-            adj[adj_i, adj_j] = 1
-            adj[adj_j, adj_i] = 1
-            adj += th.eye(adj.size(0))
-            adj = adj / adj.sum(dim=-1, keepdim=True)
-            # adj = adj.unsqueeze(0)  # shape: (1, node_num, node_num)
+        # if not hasattr(self, 'adj'):
+        #     adj_i = adj_i.long()
+        #     adj_j = adj_j.long()
+        #     adj = th.zeros(num_nodes, num_nodes)
+        #     adj[adj_i, adj_j] = 1
+        #     adj[adj_j, adj_i] = 1
+        #     adj += th.eye(adj.size(0))
+        #     adj = adj / adj.sum(dim=-1, keepdim=True)
+        #     # adj = adj.unsqueeze(0)  # shape: (1, node_num, node_num)
 
-            setattr(self, 'adj', adj)
-        # Repeat B to match the batch size of A
-        adj = getattr(self, 'adj')
+        #     setattr(self, 'adj', adj)
+        # # Repeat B to match the batch size of A
+        # adj = getattr(self, 'adj')
         # adj = adj.repeat(h_nodes.size(0), 1, 1)  # shape: (batch_size, node_num, node_num)
         # Computing mean values
         #new_h_nodes = th.matmul(adj, h_nodes)
+        adj_i = adj_i.long()
+        adj_j = adj_j.long()
+        adj = th.zeros(num_nodes, num_nodes)
+        adj[adj_i, adj_j] = 1
+        adj[adj_j, adj_i] = 1
+        adj += th.eye(adj.size(0))
+        adj = adj / adj.sum(dim=-1, keepdim=True)
+        # adj = adj.unsqueeze(0)  # shape: (1, node_num, node_num)
         new_h_nodes = th.einsum('ik,bkj->bij', adj, h_nodes)
 
         return self.fc(h_nodes_1+h_nodes_2), new_h_nodes
@@ -69,13 +83,13 @@ class CircuitExtractor(BaseFeaturesExtractor):
     def __init__(self,
                  observation_space: spaces.Box,
                  num_gcn_layer: int = 3,
-                 features_dim: int = 17736, #embedding_dim*(1+1+node_num)
+                 features_dim: int = 8*(3+MAX_CELL_NUM), #embedding_dim*(1+1+1+node_num)
                  embedding_dim: int = 8) -> None:
         super().__init__(observation_space, features_dim)
 
 
         self.metadata_encoder = nn.Sequential(
-            nn.Linear(10,embedding_dim), nn.ReLU()
+            nn.Linear(4,embedding_dim), nn.ReLU()
         )
 
         # 3 iteration of node<->edge embedding update
@@ -90,8 +104,8 @@ class CircuitExtractor(BaseFeaturesExtractor):
     def forward(self, observations: Dict) -> th.Tensor:
         features = []
 
-        # h_metadata = self.metadata_encoder(observations["metadata"])
-        # features.append(h_metadata)
+        h_metadata = self.metadata_encoder(observations["metadata"]).unsqueeze(1)
+        features.append(h_metadata)
 
         # Only use reduced mean for edge embeddings
         for layer in self.feature_encoder:
@@ -107,8 +121,7 @@ class CircuitExtractor(BaseFeaturesExtractor):
         h_atten, _ = self.atten_layer(h_nodes, h_current_node, h_current_node)
         features.append(h_atten)
         # features.append(h_atten[:,:16])
-
-        return th.cat(features, dim=1).reshape(-1,17736)
+        return th.cat(features, dim=1).reshape(-1,8*(3+MAX_CELL_NUM))
 
 
 class CircuitNetwork(nn.Module):

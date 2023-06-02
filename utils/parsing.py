@@ -10,16 +10,20 @@ canvas_grid_x_num = 32
 canvas_grid_y_num = 32
 canvas_x = 1977172/2000*1.5
 canvas_y = 1410022/2000*1.5
-#canvas_x = 2716400/1000
-#canvas_y = 2650880/1000
+# canvas_x = 2716400/1000
+# canvas_y = 2650880/1000
 grid_width =canvas_x/(canvas_grid_x_num) #width unit
 grid_height=canvas_y/(canvas_grid_y_num) #height unit
 
-hard_macro_num = 4 #adjacency index 0~15
-soft_macro_num = 1000 #adjacency index 16~4815
-pin_num = 1211 #adjacency index 4816~6026
+# hard_macro_num = 16 #adjacency index 0~15
+# soft_macro_num = 4800 #adjacency index 16~4815
+# pin_num = 1211 #adjacency index 4816~6026
+# # std_num = 35973
+# std_num = 191987
+hard_macro_num = 4
+soft_macro_num = 1000
+pin_num = 0
 std_num = 35973
-
 
 std_width = 8/grid_width
 std_height = 1.71/grid_height
@@ -253,7 +257,7 @@ def make_softmacros(net_list, partition_num, stds, hard_macros):
     soft_macro_adjacency_index = hard_macro_num
     
     print("making soft macros start!")
-    with open('./netlist/HGraphFile.hgr.part.'+str(partition_num)) as n:
+    with open('./netlist/ispd18test3/HGraphFile.hgr.part.'+str(partition_num)) as n:
 
         for num,line in enumerate(n):
             data = line.split()
@@ -355,7 +359,7 @@ def load_netlist(path="./netlist"):
 
 if __name__ == "__main__":
 
-    filename = './netlist/ispd18_test3'
+    filename = './netlist/ispd18test3/ispd18_test3'
 
     #before clustering==========
     hard_macros, stds, pins, hard_macro_name, std_name = read_cells(filename)
@@ -385,7 +389,7 @@ if __name__ == "__main__":
 
     print("making adjacency matrix finish!")
 
-    path = "./netlist"
+    path = "./netlist/ispd18test3"
     with open(path+"/adjacency_matrix", "wb") as f:
         pickle.dump(adjacency_matrix, f)
 

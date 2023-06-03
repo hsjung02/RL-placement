@@ -276,7 +276,7 @@ class CircuitEnv(Env):
     
         #parameters===================================================
 
-        weight_attractive=0.3
+        weight_attractive=0.2
         weight_repulsive=1-weight_attractive
         
 
@@ -298,7 +298,6 @@ class CircuitEnv(Env):
 
         #=============================================================
 
-        
         hard_macro_num = len(self.macro_indices)
         soft_macro_num = len(self.std_indices)
         pin_num = len(self.pin_indices)
@@ -318,7 +317,7 @@ class CircuitEnv(Env):
         cell_position_y = np.hstack([hard_macro_position_y, soft_macro_position_y, pin_position_y])
 
         for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
-                self.cell_position[i] = [cell_position_y[i]/self.grid_height, cell_position_x[i]/self.grid_width]
+                self.cell_position[i+MAX_MACRO_NUM-hard_macro_num] = [cell_position_y[i]/self.grid_height, cell_position_x[i]/self.grid_width]
         
         cell_grid_position_x = np.array(hard_macro_num + soft_macro_num + pin_num)
         cell_grid_position_y = np.array(hard_macro_num + soft_macro_num + pin_num)
@@ -327,9 +326,9 @@ class CircuitEnv(Env):
         soft_macro_position_delta_y = np.zeros(soft_macro_num)
 
         cell_charge = np.zeros(hard_macro_num+soft_macro_num+pin_num)
-        for i in range(hard_macro_num):
+        for i in range(MAX_MACRO_NUM):
             cell_charge[i] = self.cells[i]['width']*self.cells[i]['height']
-        cell_charge[hard_macro_num:] = self.cells[hard_macro_num+1]['width']*self.cells[hard_macro_num+1]['height']
+        cell_charge[MAX_MACRO_NUM:] = self.cells[MAX_MACRO_NUM+1]['width']*self.cells[MAX_MACRO_NUM+1]['height']
 
         
         ePlace_grid_force_x = np.zeros((32,32)) #해당 그리드에 셀이 위치할 경우 받는 x방향 힘
@@ -468,7 +467,7 @@ class CircuitEnv(Env):
         self.std_position_x = cell_position_x[hard_macro_num:hard_macro_num+soft_macro_num]
         self.std_position_y = cell_position_y[hard_macro_num:hard_macro_num+soft_macro_num]
         for i in range(hard_macro_num, hard_macro_num+soft_macro_num):
-            self.cell_position[i] = [cell_position_y[i], cell_position_x[i]]
+            self.cell_position[i+MAX_MACRO_NUM-hard_macro_num] = [cell_position_y[i], cell_position_x[i]]
 
     def get_reward(self) -> int:
         # Weighted sum of wirelength, congestion and density

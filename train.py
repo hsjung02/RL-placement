@@ -7,16 +7,20 @@ from model.agent import CircuitExtractor, CircuitActorCriticPolicy
 from utils.callback import ProgressCallback, VideoRecorderCallback
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.monitor import Monitor
-
+import argparse
 
 dtype = "torch.cuda.FloatTensor" if th.cuda.is_available() else "torch.FloatTensor"
 th.set_default_tensor_type(dtype)
 
-lamb = 30
+parser = argparse.ArgumentParser()
+parser.add_argument('--lamb', type=str, help='model name')
+args = parser.parse_args()
+
 
 adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist/ispd18test8/")
-env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,lamb])
+env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,int(args.lamb)])
 print("Made environments")
+
 
 eval_env = Monitor(env)
 callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-6000000, verbose=1)
@@ -45,4 +49,4 @@ while True:
     model.learn(total_timesteps=total_timesteps, callback=eval_callback)
     total_cnt += total_timesteps
     print("Total timesteps: %d"%(total_cnt))
-    model.save("timesteps_%d_test8_lambda_%d" % (total_cnt, lamb))
+    model.save("timesteps_%d_test8_lambda_%d" % (total_cnt, args.lamb))

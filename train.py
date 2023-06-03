@@ -49,4 +49,4 @@ while True:
     model.learn(total_timesteps=total_timesteps, callback=eval_callback)
     total_cnt += total_timesteps
     print("Total timesteps: %d"%(total_cnt))
-    model.save("timesteps_%d_test8_lambda_%d" % (total_cnt, args.lamb))
+    model.save("timesteps_%d_test8_lambda_%d" % (total_cnt, int(args.lamb)))

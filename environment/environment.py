@@ -128,7 +128,9 @@ class CircuitEnv(Env):
                     len(self.macro_indices)/MAX_MACRO_NUM,
                     len(self.std_indices)/MAX_STD_NUM,
                     len(self.pin_indices)/MAX_PIN_NUM]
-        features["metadata"] = th.tensor(metadata)
+        
+        #features["metadata"] = th.tensor(metadata)
+        features["metadata"] = metadata
 
 
         # Static featues of every nodes
@@ -270,24 +272,33 @@ class CircuitEnv(Env):
         self.eplace()
 
     def eplace(self) -> None:
+        
+    
         #parameters===================================================
-        #합이 1이 되도록 맞출것
-        weight_attractive=0.2
+
+        weight_attractive=0.3
         weight_repulsive=1-weight_attractive
+        
 
         max_iteration = 15
         dt = 0.5
         mass = 1
         
         #scale parameters
-        #force_scale = 1e+4 #for random force
-        repulsive_force_scale = 4e+6
-        position_scale = 5e-7
-        ePlace_grid_force_scale = 2e+4
-        hook_constant = 5e+3
+        if len(self.macro_indices) == 4:
+            repulsive_force_scale = 1e+7
+            position_scale = 1e-6
+            ePlace_grid_force_scale = 2e+2
+            hook_constant = 1e+4
+        else:
+            repulsive_force_scale = 4e+6
+            position_scale = 5e-7
+            ePlace_grid_force_scale = 2e+4
+            hook_constant = 5e+3
+
         #=============================================================
 
-
+        
         hard_macro_num = len(self.macro_indices)
         soft_macro_num = len(self.std_indices)
         pin_num = len(self.pin_indices)

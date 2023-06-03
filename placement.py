@@ -15,7 +15,7 @@ th.set_default_tensor_type(dtype)
 
 lamb = 0
 
-adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist")
+adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist/ispd18test8/")
 env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,lamb])
 print("Made environments")
 

@@ -12,19 +12,21 @@ from stable_baselines3.common.monitor import Monitor
 dtype = "torch.cuda.FloatTensor" if th.cuda.is_available() else "torch.FloatTensor"
 th.set_default_tensor_type(dtype)
 
-lamb = 0
+lamb = 30
 
-adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist/ispd18test3")
+adjacency_matrix, cells, macro_indices, std_indices, pin_indices = load_netlist("./netlist/ispd18test8/")
 env = CircuitEnv(adjacency_matrix, cells, macro_indices, std_indices, pin_indices, reward_weights=[1,lamb])
 print("Made environments")
 
 eval_env = Monitor(env)
 callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-6000000, verbose=1)
 eval_callback = EvalCallback(eval_env, callback_on_new_best=callback_on_best, verbose=1)
+#eval_callback = ProgressCallback(check_freq=1500)
+
 
 n_steps = 128
 batch_size = 32
-total_timesteps = 1000
+total_timesteps = 6000
 
 policy_kwargs = dict(features_extractor_class=CircuitExtractor)
 model = MaskablePPO(policy=CircuitActorCriticPolicy,
@@ -43,4 +45,4 @@ while True:
     model.learn(total_timesteps=total_timesteps, callback=eval_callback)
     total_cnt += total_timesteps
     print("Total timesteps: %d"%(total_cnt))
-    model.save("model0")
+    model.save("timesteps_%d_test8_lambda_%d" % (total_cnt, lamb))

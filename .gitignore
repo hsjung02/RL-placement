@@ -1,0 +1,8 @@
+/.vscode
+/실험결과.pptx
+__pycache__
+__pycache__/
+__pycache__/*
+*.pyc
+*__pycache__/*
+placement.pt

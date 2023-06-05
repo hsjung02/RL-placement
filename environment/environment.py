@@ -285,7 +285,7 @@ class CircuitEnv(Env):
         mass = 1
         
         #scale parameters
-        if len(self.macro_indices) == 4:
+        if len(self.macro_indices) == 16:
             repulsive_force_scale = 1e+7
             position_scale = 1e-6
             ePlace_grid_force_scale = 2e+2

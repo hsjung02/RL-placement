@@ -2,38 +2,10 @@
 from math import sqrt
 import numpy as np
 import pickle
+import argparse
+import sys
+import random
 
-
-
-#global variables==============================================
-canvas_grid_x_num = 32
-canvas_grid_y_num = 32
-canvas_x = 1977172/2000*1.5
-canvas_y = 1410022/2000*1.5
-# canvas_x = 2716400/1000
-# canvas_y = 2650880/1000
-grid_width =canvas_x/(canvas_grid_x_num) #width unit
-grid_height=canvas_y/(canvas_grid_y_num) #height unit
-
-# hard_macro_num = 16 #adjacency index 0~15
-# soft_macro_num = 4800 #adjacency index 16~4815
-# pin_num = 1211 #adjacency index 4816~6026
-# # std_num = 35973
-# std_num = 191987
-hard_macro_num = 4
-soft_macro_num = 1000
-pin_num = 0
-std_num = 35973
-
-std_width = 8/grid_width
-std_height = 1.71/grid_height
-
-soft_macro_area = std_width * std_height *36
-soft_macro_size = sqrt(soft_macro_area)
-
-
-partition_number = soft_macro_num
-#=================================================================
 
 def read_cells(filename):
 
@@ -97,6 +69,7 @@ def read_cells(filename):
     pins={}
     read_pin_en=0
     pin_adjacency_index = hard_macro_num + soft_macro_num
+    #pin_placed_count=0
     with open(filename + '.def') as n:
         for num, line in enumerate(n):
         #pin read enable==================
@@ -108,16 +81,17 @@ def read_cells(filename):
         
         
             if(read_pin_en):
-                if 'pin' in line:
+                if ('DIRECTION' in line):
                     data = line.split()
                     pin_name = data[1] #pin의 이름
                     pin_connected_net = data[4] #pin이 어떤 net에 연결되어 있는지
-                elif 'PLACED' in line:
+                elif ('PLACED' in line) or ('FIXED' in line):
+                    #pin_placed_count+=1
                     data = line.split()
 
                     #um단위
-                    pin_x = int(data[3])/2000
-                    pin_y = int(data[4])/2000
+                    pin_x = int(data[3])/distance_unit
+                    pin_y = int(data[4])/distance_unit
 
                     #(0 0) ( 2716400 0 ) ( 0 2650880 ) ( 2716400 2650880 )와 같이 꼭짓점에는 핀이 없당
 
@@ -125,7 +99,10 @@ def read_cells(filename):
                     pins[pin_name] = {'connected_net' : pin_connected_net, 'adjacency_index':pin_adjacency_index, 'x':pin_x/grid_width, 'y':pin_y/grid_height}
                     pin_adjacency_index += 1
 
-
+    print("=====================================================")
+    print("pin count: ", len(pins))
+    #print("pin placed count: ", pin_placed_count)
+    print("=====================================================")
 
   #=====================================================================================
 
@@ -141,6 +118,7 @@ def read_cells(filename):
     
     read_component_en=0
     std_hmetis_index=1 
+    component_cnt = 0
 
     with open(filename + '.def') as n:
         for num, line in enumerate(n):
@@ -153,6 +131,7 @@ def read_cells(filename):
 
             if(read_component_en):
                 if('- ') in line:
+                    component_cnt +=1
                     data = line.split()
                     component_name = data[1] #각 component의 이름
                     component_macro_name = data[2] #각 component가 어떤 매크로인지지
@@ -166,21 +145,28 @@ def read_cells(filename):
                     elif component_macro_name in std_name:
                         stds[component_name] = {'connected_nets' : [], 'hmetis_index': std_hmetis_index}
                         std_hmetis_index += 1
+                    else:
+                        print("else name: ", component_macro_name)
 
+    print("=====================================================")
+    print("component count: ", component_cnt)
+    print("std count: ", len(stds))
+    print("hard macro count: ", len(hard_macros))
+    print("=====================================================")
 
     return hard_macros, stds, pins, hard_macro_name, std_name
-
 
 def read_nets(filename, hard_macros, stds, pins, hard_macro_name, std_name):
 
     read_net_en=0
     net_list = {}
-    
     with open(filename + '.def') as n:
         for num, line in enumerate(n):
-
+            
             #net read enable===================
             if 'END NETS' in line:
+                read_net_en = 0
+            elif 'SPECIALNETS' in line:
                 read_net_en = 0
             elif 'NETS' in line:
                 read_net_en = 1
@@ -188,7 +174,7 @@ def read_nets(filename, hard_macros, stds, pins, hard_macro_name, std_name):
 
             if(read_net_en):
                 #새로운 net 등장
-                if '-' in line:
+                if '- ' in line:
                     data = line.split()
                     net_name = data[1] #net의 이름
                     
@@ -198,29 +184,31 @@ def read_nets(filename, hard_macros, stds, pins, hard_macro_name, std_name):
                     data = line.split()
                     #해당 net에 포함된 pin 및 component들 추가====
                     for component_name in data: 
-                        if 'pin' in component_name: #component가 pin일 경우
+                        #if 'pin' in component_name: #component가 pin일 경우
+                        if component_name in pins:
                             net_list[net_name]['connected_pins'].append(component_name)
                             net_list[net_name]['connected_adjacency_indices'].append(pins[component_name]['adjacency_index'])
 
-                        elif 'inst' in component_name:
-                            if component_name in hard_macros: #component가 hard macro인 경우
-                                hard_macros[component_name]['connected_nets'].append(net_name)  #cell list 내의 net update
-                                net_list[net_name]['connected_hard_macros'].append(component_name)  #net list update
-                                net_list[net_name]['connected_adjacency_indices'].append(hard_macros[component_name]['adjacency_index'])
+                        #elif 'inst' in component_name:
+                        elif component_name in hard_macros: #component가 hard macro인 경우
+                            hard_macros[component_name]['connected_nets'].append(net_name)  #cell list 내의 net update
+                            net_list[net_name]['connected_hard_macros'].append(component_name)  #net list update
+                            net_list[net_name]['connected_adjacency_indices'].append(hard_macros[component_name]['adjacency_index'])
 
-                            elif component_name in stds: #component가 std인 경우
-                                stds[component_name]['connected_nets'].append(net_name)  #cell list 내의 net update
-                                net_list[net_name]['connected_stds'].append(component_name)  #net list update
+                        elif component_name in stds: #component가 std인 경우
+                            stds[component_name]['connected_nets'].append(net_name)  #cell list 내의 net update
+                            net_list[net_name]['connected_stds'].append(component_name)  #net list update
+                       
 
                 #==============================================
-  
-
+    print("=====================================================")
+    print("net count: ", len(net_list))
+    print("=====================================================")
     return net_list
 
+def make_HGraphFile(filepath, net_list, stds):
 
-def make_HGraphFile(filename, net_list, stds):
-
-    f=open("./netlist/HGraphFile.txt", 'w')
+    f=open(filepath+"/HGraphFile.hgr", 'w')
 
     #write the information of graph at the top
     info_data = "%d %d\n" % (len(net_list), len(stds)+1)
@@ -238,7 +226,7 @@ def make_HGraphFile(filename, net_list, stds):
         
     f.close()
 
-def make_softmacros(net_list, partition_num, stds, hard_macros):
+def make_softmacros(net_list, partition_num, stds, HGraphFile_path):
   
     #빠른 서치를 위해 hmetis_indices 만들기==============================
     hmetis_indices_std_name = [i for i in range(len(stds)+1)]
@@ -257,7 +245,7 @@ def make_softmacros(net_list, partition_num, stds, hard_macros):
     soft_macro_adjacency_index = hard_macro_num
     
     print("making soft macros start!")
-    with open('./netlist/ispd18test3/HGraphFile.hgr.part.'+str(partition_num)) as n:
+    with open(HGraphFile_path+'/HGraphFile.hgr.part.'+str(partition_num)) as n:
 
         for num,line in enumerate(n):
             data = line.split()
@@ -286,7 +274,9 @@ def make_softmacros(net_list, partition_num, stds, hard_macros):
                 
                 #처음 등장한 softmacro일 경우
                 else:
-                    soft_macros[soft_macro_name] = {'connected_nets': [], 'adjacency_index': soft_macro_adjacency_index, 'clustered_stds':[], 'width': soft_macro_size, 'height': soft_macro_size}
+                    random_position_x = random.random() * 32
+                    random_position_y = random.random() * 32
+                    soft_macros[soft_macro_name] = {'connected_nets': [], 'adjacency_index': soft_macro_adjacency_index, 'clustered_stds':[], 'width': soft_macro_size, 'height': soft_macro_size, 'x': random_position_x, 'y' : random_position_y}
                     soft_macro_count += 1
                     soft_macro_adjacency_index += 1
         #=================================================================================
@@ -326,8 +316,6 @@ def make_adjacency_matrix(net_list, total_data_num):
   
     print("making adjacency matrix start!")
     
-    count=0
-    
     for net_name in net_list:
         for index_x in net_list[net_name]['connected_adjacency_indices']:
             for index_y in net_list[net_name]['connected_adjacency_indices']:
@@ -339,7 +327,7 @@ def make_adjacency_matrix(net_list, total_data_num):
   
     return adjacency_matrix
 
-def load_netlist(path="./netlist"):
+def load_netlist(path='./netlist'):
     with open(path+"/adjacency_matrix", "rb") as f:
         adjacency_matrix = pickle.load(f)
 
@@ -359,22 +347,117 @@ def load_netlist(path="./netlist"):
 
 if __name__ == "__main__":
 
-    filename = './netlist/ispd18test3/ispd18_test3'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--benchmark', type=str, help='model name')
+    args = parser.parse_args()
 
+    #variables===========================================================
+    canvas_grid_x_num = 32
+    canvas_grid_y_num = 32
+
+    #folder that contains benchmaark
+    benchmark_filepath = '/home/jiwoo_ug/RL-placement-transfer/netlist/%s' % args.benchmark
+
+    if(args.benchmark=="ispd18test8"):
+        benchmark_filename = benchmark_filepath + '/ispd18_test8.input' #name of the lef, def file
+        canvas_x = 2716400/1000
+        canvas_y = 2650880/1000  
+        hard_macro_num = 16 #adjacency index 0~15
+        soft_macro_num = 4800 #adjacency index 16~4815
+        pin_num = 1211 #adjacency index 4816~6026
+        std_num = 191987
+        grid_width =canvas_x/(canvas_grid_x_num) #width unit
+        grid_height=canvas_y/(canvas_grid_y_num) #height unit
+        std_width = 8/grid_width
+        std_height = 1.71/grid_height
+        distance_unit = 2000
+
+    elif(args.benchmark == "ispd18test3"):
+        benchmark_filename = benchmark_filepath + '/ispd18_test3.input'
+        distance_unit = 2000
+        canvas_x = 1977172/2000*1.5
+        canvas_y = 1410022/2000*1.5
+        hard_macro_num = 4
+        soft_macro_num = 1000
+        pin_num = 0
+        std_num = 35973
+        grid_width =canvas_x/(canvas_grid_x_num) #width unit
+        grid_height=canvas_y/(canvas_grid_y_num) #height unit
+        std_width = 8/grid_width
+        std_height = 1.71/grid_height
+
+    elif(args.benchmark=="ispd18test7"):
+        benchmark_filename = benchmark_filepath + '/ispd18_test7.input'
+        distance_unit = 2000
+        canvas_x = 2716400/1000
+        canvas_y = 2650880/1000  
+        hard_macro_num = 16 
+        soft_macro_num = 4500
+        pin_num = 1211 
+        std_num = 179881 - hard_macro_num #표기가 이렇게 되어 있음..
+        grid_width =canvas_x/(canvas_grid_x_num) #width unit
+        grid_height=canvas_y/(canvas_grid_y_num) #height unit
+        std_width = 8/grid_width
+        std_height = 1.2/grid_height
+
+    elif(args.benchmark=="ispd19test4"):
+        benchmark_filename = benchmark_filepath + '/ispd19_test4.input'
+        distance_unit = 1000
+        canvas_x = 1602000/distance_unit*3
+        canvas_y = 1552000/distance_unit*3
+        hard_macro_num = 7
+        soft_macro_num = 3700
+        pin_num = 4802
+        std_num = 146442-hard_macro_num #19년도 벤치마크는 이렇게 표시되어 있음
+        grid_width =canvas_x/(canvas_grid_x_num) #width unit
+        grid_height=canvas_y/(canvas_grid_y_num) #height unit
+        std_width = 8/grid_width
+        std_height = 2/grid_height
+
+    elif(args.benchmark=="ispd19test5"):
+        benchmark_filename = benchmark_filepath + '/ispd19_test5.input'
+        distance_unit = 1000
+        canvas_x = 906000/distance_unit*1.5
+        canvas_y = 906000/distance_unit*1.5  
+        hard_macro_num = 6
+        soft_macro_num = 723 
+        pin_num = 360
+        std_num = 28920 - hard_macro_num #19년도 벤치마크는 이렇게 표시되어 있음
+        grid_width =canvas_x/(canvas_grid_x_num) #width unit
+        grid_height=canvas_y/(canvas_grid_y_num) #height unit
+        std_width = 8/grid_width
+        std_height = 2/grid_height
+    else:
+        sys.exit("invalid benchmark")
+
+
+    soft_macro_area = std_width * std_height *40
+    soft_macro_size = sqrt(soft_macro_area)
+
+
+    partition_number = soft_macro_num
+
+    print("benchmark_filename: ", benchmark_filename, "benchmark_filepath: ", benchmark_filepath)
+
+
+    #=================================================================
+
+
+    #%%
     #before clustering==========
-    hard_macros, stds, pins, hard_macro_name, std_name = read_cells(filename)
-    net_list = read_nets(filename, hard_macros, stds, pins, hard_macro_name, std_name)
-    make_HGraphFile(filename, net_list,stds)
+    hard_macros, stds, pins, hard_macro_name, std_name = read_cells(benchmark_filename)
+    net_list = read_nets(benchmark_filename, hard_macros, stds, pins, hard_macro_name, std_name)
+    make_HGraphFile(benchmark_filepath, net_list, stds)
     print("parsing finish!")
 
 
     #after clustering=========
-    soft_macros = make_softmacros(net_list, partition_number, stds, hard_macros)
+    soft_macros = make_softmacros(net_list, partition_number, stds, benchmark_filepath)
     total_data_num = len(hard_macros)+len(soft_macros)+len(pins)
     adjacency_matrix = make_adjacency_matrix(net_list, total_data_num)
 
     hm = {hard_macros[c]['adjacency_index']:{'width':hard_macros[c]['width'], 'height':hard_macros[c]['height']} for c in hard_macros}
-    sm = {soft_macros[c]['adjacency_index']:{'width':soft_macro_size, 'height':soft_macro_size} for c in soft_macros}
+    sm = {soft_macros[c]['adjacency_index']:{'width':soft_macro_size, 'height':soft_macro_size, 'x':soft_macros[c]['x'], 'y':soft_macros[c]['y']} for c in soft_macros}
     p = {pins[c]['adjacency_index']:{'x':pins[c]['x'], 'y':pins[c]['y']} for c in pins}
     cells = {}
     cells.update(hm)
@@ -389,18 +472,28 @@ if __name__ == "__main__":
 
     print("making adjacency matrix finish!")
 
-    path = "./netlist/ispd18test3"
-    with open(path+"/adjacency_matrix", "wb") as f:
+    #%%
+
+    #save the parameters and list=============================================
+    with open(benchmark_filepath+"/adjacency_matrix", "wb") as f:
         pickle.dump(adjacency_matrix, f)
 
-    with open(path+"/cells", "wb") as f:
+    with open(benchmark_filepath+"/cells", "wb") as f:
         pickle.dump(cells, f)
 
-    with open(path+"/macro_indices", "wb") as f:
+    with open(benchmark_filepath+"/macro_indices", "wb") as f:
         pickle.dump(macro_indices, f)
 
-    with open(path+"/std_indices", "wb") as f:
+    with open(benchmark_filepath+"/std_indices", "wb") as f:
         pickle.dump(std_indices, f)
     
-    with open(path+"/pin_indices", "wb") as f:
+    with open(benchmark_filepath+"/pin_indices", "wb") as f:
         pickle.dump(pin_indices, f)
+
+    with open(benchmark_filepath+"/canvas_x", "wb") as f:
+        pickle.dump(canvas_x, f)
+
+    with open(benchmark_filepath+"/canvas_y", "wb") as f:
+        pickle.dump(canvas_y, f)
+
+    #=========================================================================
